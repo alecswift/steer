@@ -85,10 +85,10 @@ const trailLayerStyle: LineLayerSpecification = {
 
 type LngLat = [number, number]
 
-// Waypoints are what the user clicked; the drawn line is derived from them.
-// Today every leg is straight, so the line is just the waypoints. Once legs
-// snap to trails via a routing service, only this function changes.
-// See docs/route-builder.md.
+/**
+ * Builds the route GeoJSON from clicked waypoints. Legs are straight until
+ * trail routing is added; see docs/route-builder.md.
+ */
 function buildRouteLine(waypoints: LngLat[]): Feature<LineString> {
   return {
     type: 'Feature',
@@ -111,6 +111,7 @@ const routeLayerStyle: LineLayerSpecification = {
   },
 }
 
+/** Renders the hiking map and adds a route waypoint for each map click. */
 function App() {
   const [waypoints, setWaypoints] = useState<LngLat[]>([])
 
