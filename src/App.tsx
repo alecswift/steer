@@ -1,4 +1,6 @@
-import Map, { Layer, Source } from 'react-map-gl/maplibre'
+import { useState } from 'react'
+import type { Feature, LineString } from 'geojson'
+import Map, { Layer, Marker, Source } from 'react-map-gl/maplibre'
 import type {
   HillshadeLayerSpecification,
   LineLayerSpecification,
@@ -81,19 +83,18 @@ const trailLayerStyle: LineLayerSpecification = {
   },
 }
 
-// Placeholder trail until real GPX/GeoJSON import is wired up.
-const placeholderRoute: GeoJSON.Feature<GeoJSON.LineString> = {
-  type: 'Feature',
-  properties: {},
-  geometry: {
-    type: 'LineString',
-    coordinates: [
-      [-121.7269, 46.8523],
-      [-121.7157, 46.8494],
-      [-121.7059, 46.8511],
-      [-121.6978, 46.8462],
-    ],
-  },
+type LngLat = [number, number]
+
+// Waypoints are what the user clicked; the drawn line is derived from them.
+// Today every leg is straight, so the line is just the waypoints. Once legs
+// snap to trails via a routing service, only this function changes.
+// See docs/route-builder.md.
+function buildRouteLine(waypoints: LngLat[]): Feature<LineString> {
+  return {
+    type: 'Feature',
+    properties: {},
+    geometry: { type: 'LineString', coordinates: waypoints },
+  }
 }
 
 const routeLayerStyle: LineLayerSpecification = {
@@ -111,6 +112,8 @@ const routeLayerStyle: LineLayerSpecification = {
 }
 
 function App() {
+  const [waypoints, setWaypoints] = useState<LngLat[]>([])
+
   return (
     <Map
       initialViewState={{
@@ -120,6 +123,7 @@ function App() {
       }}
       style={{ width: '100vw', height: '100vh' }}
       mapStyle="https://tiles.openfreemap.org/styles/liberty"
+      onClick={(e) => setWaypoints((w) => [...w, [e.lngLat.lng, e.lngLat.lat]])}
     >
       <Source
         id="terrain-dem"
@@ -157,9 +161,13 @@ function App() {
 
       <Layer {...trailLayerStyle} />
 
-      <Source id="route" type="geojson" data={placeholderRoute}>
+      <Source id="route" type="geojson" data={buildRouteLine(waypoints)}>
         <Layer {...routeLayerStyle} />
       </Source>
+
+      {waypoints.map(([lng, lat], i) => (
+        <Marker key={i} longitude={lng} latitude={lat} color="#e6532c" />
+      ))}
     </Map>
   )
 }
