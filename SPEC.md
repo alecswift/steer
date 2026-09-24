@@ -65,7 +65,7 @@ A sidebar on the right lists saved routes. Clicking a route moves the map to fit
 **Independent Test**: With two or more saved routes, click each one in the sidebar. The map fits the selected route and the stats match it.
 
 **Acceptance Scenarios**:
-1. **Given** saved routes exist, **When** the user clicks one in the sidebar, **Then** the map fits that route and the sidebar shows its distance (mi), elevation (ft), and gain/loss (ft).
+1. **Given** saved routes exist, **When** the user clicks one in the sidebar, **Then** the map fits that route and the sidebar shows its distance (mi), minimum and maximum elevation (ft), and gain/loss (ft).
 
 ---
 
