@@ -27,7 +27,7 @@ These were settled while planning and resolve open items in the spec.
 | Default map view | **Snoqualmie Pass**, framed from Mount Defiance, Web Mountain and Bandera in the west to Guye, Kendall and Kaleetan in the east. Defined as bounds, not center and zoom, so it frames the same area on any screen size. This area is also the test area for seeds and routing checks. |
 | Peak data | Comes from the base map's own `mountain_peak` tile layer (`name`, `ele`, `ele_ft`, `rank`, available from zoom 7). The Liberty style doesn't draw it, so Steer adds its own layer. No backend is needed. |
 | Peak links | **SummitPost** and **WTA** only. AllTrails is dropped because there's no API and its terms forbid scraping. Links are shown only for peaks in **Washington State**, checked against a simplified state outline (a bounding box would also catch parts of Oregon, Idaho and BC). They're built from each site's **search URL**, with a small **curated list** of exact pages for the Snoqualmie peaks that takes priority. Peaks outside Washington still show their name and elevation, with no links. |
-| Map layers | Hillshade, contours and trails are **always on**. There are no layer toggles in the MVP; they're future work. Only the **route selected in the sidebar** is drawn. |
+| Map layers | Hillshade, contours and trails are **always on**. There are no layer toggles in the MVP; they're future work. In view mode, only the **saved route selected in the sidebar** is drawn. In edit mode, the active route remains visible, even if unsaved. |
 | Storage units | Metric in the database and API. Converted to imperial for display only (FR-010). |
 
 ### Open questions (decided in the chunk that needs them)
@@ -66,6 +66,7 @@ These were settled while planning and resolve open items in the spec.
 | HTTP requests | Phoenix spans + metrics | route, status, duration | 2.5, 2.7 |
 | Database queries | Ecto spans | query source, duration | 2.5 |
 | `peak.selected` | event | `peak_name`, `in_washington`, `has_curated_links` | 1.3 |
+| `steer.peak.select_to_panel_ms` | histogram (client) | From the `peak.selected` click to the peak details panel rendering; **SC-006** panel, p95 under 100 ms | 1.4 |
 | `peak.link_opened` | event | `site` (summitpost / wta), `link_type` (exact / search) | 1.8 |
 | `route.selected` | event | `route_id` | 4.3 |
 | `editor.opened` | event | `mode` (new / existing) | 5.1, 9.2 |
@@ -169,7 +170,7 @@ These were settled while planning and resolve open items in the spec.
 
 - [ ] **0.11 Steer dashboard as code**
   - Add `telemetry/grafana/dashboards/steer.json` and a provisioning file mounted into the `telemetry` container.
-  - Start with these panels: an event count by name, recent frontend errors, and the `app.loaded` time. Later chunks add panels, including one for each success criterion (SC-001 snap time, SC-002 time to save, and so on).
+  - Start with these panels: an event count by name, recent frontend errors, and the `app.loaded` time. Later chunks add panels for success criteria, including SC-001 snap time, SC-002 time to save, and SC-006 peak click-to-panel-render latency (p95 under 100 ms, added in 1.4).
 
   *Verify*: after restarting the container, the Steer dashboard appears in Grafana with live data.
 
@@ -210,13 +211,13 @@ This phase is frontend-only and uses data the map tiles already contain, so it d
   - A right-hand `Sidebar` next to the map, with an empty state ("Select a peak").
   - App-level selection state with two independent parts: `selectedPeak` (set here) and `selectedRouteId` (added in Phase 4). Choosing a peak doesn't clear the route, and choosing a route doesn't clear the peak.
   - The sidebar panel shows the peak while one is selected, and a close button on the panel clears it.
-  - Clicking a peak selects it. Clicking empty map clears the peak only.
+  - Clicking a peak selects it and emits `peak.selected`, recording the click time for the latency histogram in 1.4. Clicking empty map clears the peak only.
 
-  *Verify*: a Vitest test covers the selection logic. By hand, check that clicking a peak updates the sidebar and that the map resizes correctly next to it.
+  *Verify*: a Vitest test covers the selection logic. By hand, check that clicking a peak updates the sidebar and that the map resizes correctly next to it. Confirm `peak.selected` appears in Grafana.
 
 - [ ] **1.4 Peak panel** *(UI)*
-  The sidebar shows the peak's name, its elevation in ft ("Elevation unknown" when the tiles have none), and its coordinates.
-  *Verify*: Kendall Peak shows 5,781 ft. Easter Island (a small named point near Mount Washington that has no elevation in the tiles) shows "Elevation unknown".
+  The sidebar shows the peak's name, its elevation in ft ("Elevation unknown" when the tiles have none), and its coordinates. Record `steer.peak.select_to_panel_ms` from the click that emits `peak.selected` until the details panel renders; add an SC-006 dashboard panel showing p95 against the under-100-ms target.
+  *Verify*: Kendall Peak shows 5,781 ft. Easter Island (a small named point near Mount Washington that has no elevation in the tiles) shows "Elevation unknown". Click peaks and confirm the histogram and SC-006 panel show click-to-panel-render latency in Grafana.
 
 - [ ] **1.5 Washington check**
   - Add `src/data/washington.json`, a simplified Washington State outline (roughly 100 points) made from the public-domain US Census cartographic boundary files.
@@ -541,7 +542,7 @@ This phase is frontend-only and uses data the map tiles already contain, so it d
 
 | Requirement | Chunks |
 |---|---|
-| FR-001 Map layers; only the selected route drawn | 0.4, 4.3 |
+| FR-001 Map layers; selected saved route in view mode and active route in edit mode | 0.4, 4.3, 5.3, 9.2 |
 | FR-002 View and edit modes | 5.1, 9.2 |
 | FR-003 Click to add and snap, trails preferred | 5.3, 6.3, 6.4, 7.3 |
 | FR-004 Straight-line fallback | 6.7, 7.4 |
@@ -559,5 +560,5 @@ This phase is frontend-only and uses data the map tiles already contain, so it d
 | SC-003 Selected route drawn with no visible delay | 4.3 |
 | SC-004 Identical after reload | 8.6 |
 | SC-005 Trails before roads | 6.3 |
-| SC-006 Peak details are instant and curated links are correct | 1.4, 1.7 |
+| SC-006 Peak details render in under 100 ms at p95 and curated links are correct | 1.3, 1.4, 1.7, 1.8 |
 | FR-014 Telemetry | 0.7–0.11, 2.5–2.7, plus every feature chunk (see "Telemetry conventions") |

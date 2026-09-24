@@ -118,7 +118,7 @@ In view mode, the user clicks a named peak on the map. The sidebar shows the pea
 
 ### Functional Requirements
 
-- **FR-001**: The system MUST display a map with topography (contours), hillshade and trails, always on (not toggleable in the MVP). Only the route selected in the sidebar is drawn.
+- **FR-001**: The system MUST display a map with topography (contours), hillshade and trails, always on (not toggleable in the MVP). In view mode, only the saved route selected in the sidebar is drawn. In edit mode, the active route, including an unsaved route, MUST remain visible while it is being edited.
 - **FR-002**: The system MUST have a view mode and an edit mode. Users MUST be able to enter edit mode to create a new route or to edit an existing one.
 - **FR-003**: In edit mode, users MUST be able to add points by clicking the map. Each leg between consecutive points MUST snap to the most efficient path, preferring trails over roads.
 - **FR-004**: When no trail or road path exists between two points, the system MUST fall back to a straight line automatically, without the user doing anything.
@@ -129,7 +129,7 @@ In view mode, the user clicks a named peak on the map. The sidebar shows the pea
 - **FR-009**: Users MUST be able to delete saved routes.
 - **FR-010**: All measurements MUST be shown in imperial units (miles, feet).
 - **FR-011**: The system MUST support routes anywhere in the world.
-- **FR-012**: The routing/snapping engine is [NEEDS CLARIFICATION: hosted routing API (e.g. GraphHopper, Valhalla, BRouter) vs. a self-hosted engine (e.g. BRouter, GraphHopper, Valhalla, OSRM, or pgRouting inside Postgres). Must support a hiking profile that prefers trails.]
+- **FR-012**: The system MUST use self-hosted BRouter for routing/snapping with a hiking profile that prefers trails. The Phoenix API MUST be the only component that accesses BRouter, and MUST do so through the `Steer.Routing` adapter. The frontend MUST request snapped legs through Phoenix.
 - **FR-013**: In view mode, users MUST be able to click a named peak to see its name and elevation. For peaks in Washington State, the system MUST also show links to SummitPost and WTA. The links go to exact pages where a curated link exists, and to site searches otherwise. AllTrails is out of scope because it has no API and forbids scraping.
 - **FR-014**: The system MUST emit telemetry from the start of development: structured logs, distributed traces (browser → API → database and routing engine), metrics, product events for key user actions, and frontend errors. All of it MUST be queryable in one place. Each measurable success criterion MUST have a metric so it can be checked from real use. Telemetry MUST NOT include personal data or route coordinates, and failures in telemetry MUST NOT affect the app.
 
@@ -153,7 +153,7 @@ In view mode, the user clicks a named peak on the map. The sidebar shows the pea
 - **SC-003**: Selecting a route in the sidebar draws it and fits the map with no visible delay.
 - **SC-004**: A saved route reloads with identical geometry and stats after a page refresh.
 - **SC-005**: For any route that has at least one trail option, the snapped path follows trails and uses roads only where no trail connects.
-- **SC-006**: Clicking a peak shows its details in the sidebar with no visible delay, and every curated link opens the correct page.
+- **SC-006**: Clicking a peak shows its details in the sidebar with no visible delay (click-to-panel-render latency under 100 ms at p95), and every curated link opens the correct page.
 
 ---
 
@@ -195,7 +195,7 @@ In view mode, the user clicks a named peak on the map. The sidebar shows the pea
 | **Map rendering** | MapLibre GL via `react-map-gl`, contours via `maplibre-contour` |
 | **Backend** | Elixir, Phoenix (JSON API) |
 | **Database** | PostgreSQL + PostGIS, accessed through Ecto with `geo_postgis` |
-| **Routing engine** | Open. See FR-012 |
+| **Routing engine** | Self-hosted BRouter, accessed only by Phoenix through `Steer.Routing` (FR-012) |
 | **Telemetry** | OpenTelemetry (browser SDK and Erlang/Elixir SDK), sending to Grafana LGTM (Loki, Tempo, Prometheus, Grafana) in Docker for development |
 | **CI** | GitHub Actions running oxlint on PRs and pushes to `main` |
 | **Hosting** | To be decided |
@@ -215,26 +215,24 @@ flowchart LR
     DB[("PostgreSQL + PostGIS")]
     Tiles["OpenFreeMap<br/>(base map, trails)"]
     DEM["AWS Terrain Tiles<br/>(elevation)"]
-    Router["Routing engine<br/>(TBD, FR-012)"]
+    Router["Self-hosted BRouter<br/>(FR-012)"]
     Sites["SummitPost / WTA<br/>(external pages)"]
     Telemetry[("Grafana LGTM<br/>logs · traces · metrics · events")]
 
-    UI -- "JSON / GeoJSON" --> API
+    UI -- "JSON / GeoJSON; snap requests" --> API
     API -- "Ecto + geo_postgis" --> DB
     UI -- "vector tiles" --> Tiles
     UI -- "DEM tiles" --> DEM
-    UI -. "snap leg A → B" .-> Router
+    API -- "Steer.Routing adapter" --> Router
     UI -. "peak links (new tab)" .-> Sites
     UI -- "OTLP" --> Telemetry
     API -- "OTLP" --> Telemetry
 ```
-
-> Whether the client calls the routing engine directly or goes through the Phoenix API depends on the engine choice (FR-012).
 
 ### Technical Notes
 
 - **Storage**: each route stores its ordered waypoints (for editing and re-snapping) and its resolved geometry as a PostGIS `LineStringZ` (for display and stats). The API returns GeoJSON that MapLibre can use directly.
 - **Stats**: distance is computed with PostGIS geography functions (`ST_Length`). Elevation gain and loss come from the Z values sampled from the DEM along the resolved line.
 - **Undo/redo** is client-side state in edit mode. Only the saved route is sent to the backend.
-- **Performance**: SC-001's sub-second target means per-leg routing requests must be fast. This limits the routing engine choice (FR-012).
+- **Performance**: SC-001's sub-second target requires the Phoenix-to-BRouter request and response path to be fast enough for each snapped leg.
 - **Peaks** are entirely client-side. A MapLibre layer draws the tiles' `mountain_peak` features and handles clicks. Links are built in the browser, from the curated list or from each site's search URL. The Washington check is a point-in-polygon test against the bundled state outline. The peak feature doesn't use the backend.
