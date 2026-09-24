@@ -34,15 +34,15 @@ These were settled while planning and resolve open items in the spec.
 
 - **Search URL formats** (chunk 1.6): confirm the current search URL for SummitPost and WTA.
 - **Phoenix metrics export** (chunk 2.7): the OpenTelemetry metrics SDK for Erlang and Elixir is still experimental. Choose between it and PromEx exposing `/metrics` for Prometheus to scrape.
+- **Elevation noise** (chunk 3.4): whether gain/loss needs a small smoothing threshold.
+- **BRouter Docker image** (chunk 6.1): build from the upstream repo's Dockerfile or use a community image.
+- **BRouter segment acquisition** (chunk 6.2): download on demand, download the whole world upfront, or a configurable region list.
+- **PNG decoding in Elixir** (chunk 6.5): pick a library to read Terrarium tiles.
 
 ### Later (after the MVP)
 
 - **Layer toggles**: switches to show or hide topography (contours) and hillshade, and possibly to show all saved routes at once. Remembering the choices ties in with User Settings.
 - **Bulk exact links from Wikidata**: check how many Washington peaks in Wikidata have SummitPost IDs, matched through the OSM `wikidata` tag. If enough do, import them into a Postgres table so exact links cover thousands of peaks, not only the hand-curated few.
-- **BRouter segment acquisition** (chunk 6.2): download on demand, download the whole world upfront, or a configurable region list.
-- **BRouter Docker image** (chunk 6.1): build from the upstream repo's Dockerfile or use a community image.
-- **PNG decoding in Elixir** (chunk 6.5): pick a library to read Terrarium tiles.
-- **Elevation noise** (chunk 3.4): whether gain/loss needs a small smoothing threshold.
 
 ---
 
