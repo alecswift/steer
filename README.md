@@ -1,4 +1,10 @@
-# React + TypeScript + Vite
+# Steer
+
+## About
+
+Steer is a simple way to plan and save your hikes. Click points on the map and Steer draws your route along real trails. Save your favorites, see how far and how steep each one is, and explore the terrain with topographic and hillshade map views.
+
+## React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
