@@ -5,23 +5,22 @@
 **Scope**: High-level architecture and MVP. Detailed behavior of individual features will be covered in separate feature specs.
 **Format**: Based on [GitHub Spec Kit `spec-template.md`](https://github.com/github/spec-kit/blob/main/templates/spec-template.md), with a Technical Context section adapted from its `plan-template.md`.
 
-**Input**: A web app for building and saving hiking routes. **View mode** shows saved routes over a map with toggleable view states. **Edit mode** lets the user build a route by clicking points on the map. Each leg snaps to the most efficient path along existing trails (preferred) or roads. The user can then save and exit easily.
+**Input**: A web app for building and saving hiking routes. **View mode** shows a topographic map with contours and hillshade, and draws whichever saved route is selected in the sidebar. **Edit mode** lets the user build a route by clicking points on the map. Each leg snaps to the most efficient path along existing trails (preferred) or roads. The user can then save and exit easily. Clicking a peak on the map shows its details, and for Washington peaks, links to SummitPost and WTA.
 
 ---
 
 ## 1. User Scenarios & Testing
 
-### User Story 1 - View the map with toggleable layers (Priority: P1)
+### User Story 1 - View the topographic map (Priority: P1)
 
-The user opens the app and sees a map with their saved routes, topographic contour lines, and hillshade. They can turn each of these three layers on and off.
+The user opens the app and sees a map with topographic contour lines, hillshade and trails, which are always on. No route is drawn until the user selects one in the sidebar (User Story 4).
 
 **Why this priority**: This is the base experience everything else sits on. Most of it already exists in the prototype.
 
-**Independent Test**: Load the app and toggle each layer. The map updates immediately and nothing else changes.
+**Independent Test**: Load the app. Contours, hillshade and trails are visible, and no route is drawn.
 
 **Acceptance Scenarios**:
-1. **Given** the app has just loaded, **When** the map renders, **Then** the routes, topography, and hillshade layers are all visible.
-2. **Given** a layer is visible, **When** the user toggles it off, **Then** it disappears from the map and the other layers are unaffected.
+1. **Given** the app has just loaded, **When** the map renders, **Then** contours, hillshade and trails are visible and no route is drawn.
 
 ---
 
@@ -58,14 +57,15 @@ The user saves the route. Entering a name is optional; if they skip it, a name i
 
 ### User Story 4 - Browse saved routes in the sidebar (Priority: P1)
 
-A sidebar on the right lists saved routes. Clicking a route moves the map to fit it, and the sidebar shows its distance, elevation, and elevation gain and loss.
+A sidebar on the right lists saved routes. Clicking a route draws it on the map (the only route drawn) and fits the map to it, and the sidebar shows its distance, elevation, and elevation gain and loss.
 
 **Why this priority**: This is how the user finds and reviews their routes.
 
 **Independent Test**: With two or more saved routes, click each one in the sidebar. The map fits the selected route and the stats match it.
 
 **Acceptance Scenarios**:
-1. **Given** saved routes exist, **When** the user clicks one in the sidebar, **Then** the map fits that route and the sidebar shows its distance (mi), elevation (ft), and gain/loss (ft).
+1. **Given** saved routes exist, **When** the user clicks one in the sidebar, **Then** only that route is drawn, the map fits it, and the sidebar shows its distance (mi), elevation (ft), and gain/loss (ft).
+2. **Given** a route is selected, **When** the user clicks a different route, **Then** the first route disappears and the new one is drawn.
 
 ---
 
@@ -83,12 +83,34 @@ From a selected route in the sidebar, the user clicks **Edit** to open it in edi
 
 ---
 
+### User Story 6 - Look up a peak (Priority: P3)
+
+In view mode, the user clicks a named peak on the map. The sidebar shows the peak's name and elevation. For peaks in Washington State, it also links to the peak's SummitPost page and to related hikes on WTA.
+
+**Why this priority**: Useful for planning a trip, but not part of building routes.
+
+**Independent Test**: Click Kendall Peak. The sidebar shows its details, and each link opens the right page in a new tab.
+
+**Acceptance Scenarios**:
+1. **Given** view mode, **When** the user clicks a named peak in Washington State, **Then** the sidebar shows its name, elevation (ft) and links to SummitPost and WTA.
+2. **Given** a Washington peak with no curated links, **When** it is selected, **Then** the links are search links for that peak name.
+3. **Given** a peak outside Washington, **When** it is selected, **Then** the sidebar shows its name and elevation with no links, and a note that links cover Washington peaks only.
+4. **Given** a route is selected and drawn, **When** the user clicks a peak, **Then** the sidebar shows the peak and the route stays drawn on the map.
+
+---
+
 ### Edge Cases
 
 - A click lands far from any trail or road: the leg falls back to a straight line (details deferred to a feature spec).
 - The routing service is slow or unavailable: the user must not lose route progress.
 - Routes can be in any region of the world, including the antimeridian and polar areas where map projections distort.
 - A saved route has no name: the generated name must be unique enough to tell routes apart in the sidebar.
+- Two peaks share a name (e.g. Mount Defiance near Snoqualmie Pass and Mount Defiance in Oregon): curated links must only attach to the right one, so they are matched by location as well as name.
+- A peak has no elevation in the map data: the sidebar shows "Elevation unknown" and still shows its links.
+- A peak without a name is not clickable, since there is nothing to link to.
+- A peak near the Washington border: whether it gets links depends on the state outline, not a rough bounding box.
+- In edit mode, clicking a peak adds a waypoint like any other map click. It does not select the peak.
+- A route is selected and the user clicks a peak: the route stays drawn on the map while the sidebar shows the peak. Closing the peak brings back the route's stats.
 
 ---
 
@@ -96,7 +118,7 @@ From a selected route in the sidebar, the user clicks **Edit** to open it in edi
 
 ### Functional Requirements
 
-- **FR-001**: The system MUST display a map with separately toggleable layers for routes, topography (contours), and hillshade, all on by default.
+- **FR-001**: The system MUST display a map with topography (contours), hillshade and trails, always on (not toggleable in the MVP). Only the route selected in the sidebar is drawn.
 - **FR-002**: The system MUST have a view mode and an edit mode. Users MUST be able to enter edit mode to create a new route or to edit an existing one.
 - **FR-003**: In edit mode, users MUST be able to add points by clicking the map. Each leg between consecutive points MUST snap to the most efficient path, preferring trails over roads.
 - **FR-004**: When no trail or road path exists between two points, the system MUST fall back to a straight line automatically, without the user doing anything.
@@ -108,12 +130,15 @@ From a selected route in the sidebar, the user clicks **Edit** to open it in edi
 - **FR-010**: All measurements MUST be shown in imperial units (miles, feet).
 - **FR-011**: The system MUST support routes anywhere in the world.
 - **FR-012**: The routing/snapping engine is [NEEDS CLARIFICATION: hosted routing API (e.g. GraphHopper, Valhalla, BRouter) vs. a self-hosted engine (e.g. BRouter, GraphHopper, Valhalla, OSRM, or pgRouting inside Postgres). Must support a hiking profile that prefers trails.]
+- **FR-013**: In view mode, users MUST be able to click a named peak to see its name and elevation. For peaks in Washington State, the system MUST also show links to SummitPost and WTA. The links go to exact pages where a curated link exists, and to site searches otherwise. AllTrails is out of scope because it has no API and forbids scraping.
 
 ### Key Entities
 
 - **User**: The owner of routes. The MVP has exactly one implicit user and no login, but every route carries an owner reference so accounts can be added later without migrating data.
 - **Route**: Name (optional or generated), owner, ordered waypoints, the resolved snapped geometry (a line with elevation), computed stats (distance, min/max elevation, gain, loss), and timestamps.
 - **Waypoint**: One user-clicked point (longitude, latitude) in a route's ordered list. The waypoints are kept so a route can be re-snapped and edited.
+- **Peak**: A named summit from the base map's data: name, location, elevation (when known) and rank (how prominent it is on the map). Peaks are read from the map tiles and are not stored by Steer.
+- **Peak Link**: A link from a Washington peak to its SummitPost page or to WTA hikes. It is either an exact page from a small curated list, or a search for the peak's name on that site.
 - **User Settings** *(future)*: Saved preferences such as default layer visibility.
 
 ---
@@ -124,9 +149,10 @@ From a selected route in the sidebar, the user clicks **Edit** to open it in edi
 
 - **SC-001**: After the user clicks a new point, the snapped leg appears in under 1 second.
 - **SC-002**: The user can create, name, and save a multi-point route in under 2 minutes without instructions.
-- **SC-003**: Toggling a layer updates the map with no visible delay.
+- **SC-003**: Selecting a route in the sidebar draws it and fits the map with no visible delay.
 - **SC-004**: A saved route reloads with identical geometry and stats after a page refresh.
 - **SC-005**: For any route that has at least one trail option, the snapped path follows trails and uses roads only where no trail connects.
+- **SC-006**: Clicking a peak shows its details in the sidebar with no visible delay, and every curated link opens the correct page.
 
 ---
 
@@ -136,8 +162,11 @@ From a selected route in the sidebar, the user clicks **Edit** to open it in edi
 - **Desktop browser first**: the layout should not rule out phones and tablets, which are planned for later.
 - **Map data**: base map tiles come from OpenFreeMap (OSM-based vector tiles, no API key). Elevation comes from AWS Terrain Tiles (Terrarium encoding), which also feed hillshade, contours, and route elevation stats.
 - **Main use is hiking**: routing always prefers trails.
-- The map opens on a fixed default view (currently Mt. Rainier).
+- The map opens on a fixed default view of the Snoqualmie Pass area, covering Web Mountain, Mount Defiance, Bandera and Little Bandera Mountains, Kaleetan Peak, Snoqualmie Mountain, Guye Peak and Kendall Peak.
 - Hosting and deployment are not decided yet.
+- **Peak data**: peak names, locations and elevations come from the `mountain_peak` layer already in the OpenFreeMap tiles. No extra data source is needed.
+- **Washington outline**: peak links are limited to a simplified Washington State outline made from public-domain US Census boundary files.
+- **Peak links are only links**: Steer doesn't copy, cache or scrape content from SummitPost or WTA.
 
 ### Out of Scope (MVP)
 
@@ -145,10 +174,15 @@ From a selected route in the sidebar, the user clicks **Edit** to open it in edi
 - Elevation profile chart and live stats while editing
 - Dragging or directly deleting individual waypoints
 - GPX import and export
-- Saved user settings (remembered layer toggles)
+- Layer toggles for topography and hillshade, and showing all saved routes at once
+- Saved user settings (e.g. remembered layer toggles)
 - User accounts and multi-user support
 - Mobile and tablet layouts
 - Snapping to terrain features such as ridgelines (stretch idea: find ridges from the elevation data)
+- AllTrails links (there is no API, and its terms forbid scraping)
+- Peak links outside Washington State
+- Exact links for every Washington peak. Bulk-importing SummitPost IDs from Wikidata is a follow-up, depending on how many peaks Wikidata covers.
+- Searching for peaks by name
 
 ---
 
@@ -161,6 +195,7 @@ From a selected route in the sidebar, the user clicks **Edit** to open it in edi
 | **Backend** | Elixir, Phoenix (JSON API) |
 | **Database** | PostgreSQL + PostGIS, accessed through Ecto with `geo_postgis` |
 | **Routing engine** | Open. See FR-012 |
+| **CI** | GitHub Actions running oxlint on PRs and pushes to `main` |
 | **Hosting** | To be decided |
 
 ### Architecture Overview
@@ -168,7 +203,7 @@ From a selected route in the sidebar, the user clicks **Edit** to open it in edi
 ```mermaid
 flowchart LR
     subgraph Client["Browser: React + MapLibre"]
-        UI["View / Edit modes<br/>Layer toggles<br/>Right sidebar"]
+        UI["View / Edit modes<br/>Right sidebar<br/>Peak panel"]
     end
 
     subgraph Backend["Elixir / Phoenix"]
@@ -179,12 +214,14 @@ flowchart LR
     Tiles["OpenFreeMap<br/>(base map, trails)"]
     DEM["AWS Terrain Tiles<br/>(elevation)"]
     Router["Routing engine<br/>(TBD, FR-012)"]
+    Sites["SummitPost / WTA<br/>(external pages)"]
 
     UI -- "JSON / GeoJSON" --> API
     API -- "Ecto + geo_postgis" --> DB
     UI -- "vector tiles" --> Tiles
     UI -- "DEM tiles" --> DEM
     UI -. "snap leg A → B" .-> Router
+    UI -. "peak links (new tab)" .-> Sites
 ```
 
 > Whether the client calls the routing engine directly or goes through the Phoenix API depends on the engine choice (FR-012).
@@ -195,3 +232,4 @@ flowchart LR
 - **Stats**: distance is computed with PostGIS geography functions (`ST_Length`). Elevation gain and loss come from the Z values sampled from the DEM along the resolved line.
 - **Undo/redo** is client-side state in edit mode. Only the saved route is sent to the backend.
 - **Performance**: SC-001's sub-second target means per-leg routing requests must be fast. This limits the routing engine choice (FR-012).
+- **Peaks** are entirely client-side. A MapLibre layer draws the tiles' `mountain_peak` features and handles clicks. Links are built in the browser, from the curated list or from each site's search URL. The Washington check is a point-in-polygon test against the bundled state outline. The peak feature doesn't use the backend.
