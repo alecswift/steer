@@ -131,6 +131,7 @@ In view mode, the user clicks a named peak on the map. The sidebar shows the pea
 - **FR-011**: The system MUST support routes anywhere in the world.
 - **FR-012**: The routing/snapping engine is [NEEDS CLARIFICATION: hosted routing API (e.g. GraphHopper, Valhalla, BRouter) vs. a self-hosted engine (e.g. BRouter, GraphHopper, Valhalla, OSRM, or pgRouting inside Postgres). Must support a hiking profile that prefers trails.]
 - **FR-013**: In view mode, users MUST be able to click a named peak to see its name and elevation. For peaks in Washington State, the system MUST also show links to SummitPost and WTA. The links go to exact pages where a curated link exists, and to site searches otherwise. AllTrails is out of scope because it has no API and forbids scraping.
+- **FR-014**: The system MUST emit telemetry from the start of development: structured logs, distributed traces (browser → API → database and routing engine), metrics, product events for key user actions, and frontend errors. All of it MUST be queryable in one place. Each measurable success criterion MUST have a metric so it can be checked from real use. Telemetry MUST NOT include personal data or route coordinates, and failures in telemetry MUST NOT affect the app.
 
 ### Key Entities
 
@@ -195,6 +196,7 @@ In view mode, the user clicks a named peak on the map. The sidebar shows the pea
 | **Backend** | Elixir, Phoenix (JSON API) |
 | **Database** | PostgreSQL + PostGIS, accessed through Ecto with `geo_postgis` |
 | **Routing engine** | Open. See FR-012 |
+| **Telemetry** | OpenTelemetry (browser SDK and Erlang/Elixir SDK), sending to Grafana LGTM (Loki, Tempo, Prometheus, Grafana) in Docker for development |
 | **CI** | GitHub Actions running oxlint on PRs and pushes to `main` |
 | **Hosting** | To be decided |
 
@@ -215,6 +217,7 @@ flowchart LR
     DEM["AWS Terrain Tiles<br/>(elevation)"]
     Router["Routing engine<br/>(TBD, FR-012)"]
     Sites["SummitPost / WTA<br/>(external pages)"]
+    Telemetry[("Grafana LGTM<br/>logs · traces · metrics · events")]
 
     UI -- "JSON / GeoJSON" --> API
     API -- "Ecto + geo_postgis" --> DB
@@ -222,6 +225,8 @@ flowchart LR
     UI -- "DEM tiles" --> DEM
     UI -. "snap leg A → B" .-> Router
     UI -. "peak links (new tab)" .-> Sites
+    UI -- "OTLP" --> Telemetry
+    API -- "OTLP" --> Telemetry
 ```
 
 > Whether the client calls the routing engine directly or goes through the Phoenix API depends on the engine choice (FR-012).

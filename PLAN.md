@@ -2,7 +2,7 @@
 
 **Created**: 2026-09-24
 **Based on**: [SPEC.md](SPEC.md)
-**Approach**: Build in small, ordered chunks. Each chunk is roughly **one commit and under an hour**, and ends with a **Verify** step: automated tests where they fit, plus a short manual check. Chunks are grouped into phases, and each phase ends in a **milestone** you can demo.
+**Approach**: Build in small, ordered chunks. Each chunk is roughly **one commit and under an hour**, and ends with a **Verify** step: automated tests where they fit, plus a short manual check. Chunks are grouped into phases, and each phase ends in a **milestone** you can demo. Chunks tagged *(UI)* are built with the **frontend-design** Claude Code plugin (see Decisions).
 
 ---
 
@@ -16,8 +16,10 @@ These were settled while planning and resolve open items in the spec.
 | Segment files | **Open.** Solved in chunk 6.2 (see "Open questions"). |
 | Elevation source | Snapped legs use **BRouter's Z values**. Straight fallback legs get Z sampled from **AWS Terrarium tiles in Phoenix**. |
 | Repo layout | `frontend/` (Vite + React) and `backend/` (Phoenix). `docker-compose.yml` at the root. |
-| Local infra | **Docker Compose** runs PostGIS and BRouter. Phoenix and Vite run natively. |
+| Local infra | **Docker Compose** runs PostGIS, BRouter and the telemetry stack. Phoenix and Vite run natively. |
+| Telemetry | Telemetry is **central to the project**. **OpenTelemetry** is used everywhere, for structured logs, traces, metrics, product events and errors. The data goes to a **Grafana LGTM** container (Loki, Grafana, Tempo, and Prometheus/Mimir for metrics) in Docker Compose. It starts in Phase 0 (browser) and Phase 2 (Phoenix), and **every chunk after that adds its own telemetry** (see "Telemetry conventions"). The same OpenTelemetry setup can later send to a hosted service by changing an endpoint. |
 | Testing | **ExUnit** (backend), **Vitest** (frontend logic), and **manual verify steps** in every chunk. No end-to-end tests in the MVP. |
+| Frontend design | All UI work (components, layout, styling, dialogs, map marker and line styles) uses Anthropic's **frontend-design** Claude Code plugin. Chunk 0.12 sets up the shared design foundation, and every *(UI)* chunk builds on it so the app looks consistent. |
 | CI | A **GitHub Actions** workflow runs **oxlint** on every PR and on pushes to `main`. There's no deploy (CD) step until hosting is decided. |
 | Auto-generated names | **Stats-based**, e.g. `5.2 mi loop · Sep 24` or `3.1 mi route · Sep 24`. Duplicates get ` (2)`, ` (3)`, … Generated on the backend. |
 | Unsaved-changes warning | **In-app confirm dialog** when leaving edit mode, and a **browser `beforeunload`** warning on refresh or tab close. |
@@ -31,6 +33,7 @@ These were settled while planning and resolve open items in the spec.
 ### Open questions (decided in the chunk that needs them)
 
 - **Search URL formats** (chunk 1.6): confirm the current search URL for SummitPost and WTA.
+- **Phoenix metrics export** (chunk 2.7): the OpenTelemetry metrics SDK for Erlang and Elixir is still experimental. Choose between it and PromEx exposing `/metrics` for Prometheus to scrape.
 
 ### Later (after the MVP)
 
@@ -43,7 +46,45 @@ These were settled while planning and resolve open items in the spec.
 
 ---
 
-## Phase 0: Repo restructure
+## Telemetry conventions
+
+**Rule for every chunk**: a chunk that adds behavior also adds its telemetry: the events, spans or metrics listed below, or new ones that follow these conventions. Its **Verify** step includes finding them in Grafana. A chunk isn't done until its telemetry shows up.
+
+- **Event names**: lowercase `area.action`, e.g. `peak.selected` or `route.saved`. Attributes use `snake_case`.
+- **Metric names**: prefixed `steer.`, with the unit in the name, e.g. `steer.snap.duration_ms`.
+- **Correlation**: every log and event carries `session.id`, plus the trace and span IDs when there is an active span. Browser `fetch` calls send a `traceparent` header, so one trace runs from browser to Phoenix to Postgres or BRouter.
+- **Privacy**: no personal data. The MVP has a single user and no accounts. Route coordinates stay out of telemetry; send IDs and stats instead.
+- **Safe**: telemetry failures never affect the app.
+- **Success criteria as metrics**: each measurable success criterion in the spec gets a metric and a dashboard panel, so its target can be checked from real use.
+
+### Telemetry catalog
+
+| Signal | Kind | Attributes / notes | Chunk |
+|---|---|---|---|
+| `app.loaded` | event + histogram | map load time | 0.10 |
+| Frontend errors | error log | message, stack trace, component | 0.9 |
+| HTTP requests | Phoenix spans + metrics | route, status, duration | 2.5, 2.7 |
+| Database queries | Ecto spans | query source, duration | 2.5 |
+| `peak.selected` | event | `peak_name`, `in_washington`, `has_curated_links` | 1.3 |
+| `peak.link_opened` | event | `site` (summitpost / wta), `link_type` (exact / search) | 1.8 |
+| `route.selected` | event | `route_id` | 4.3 |
+| `editor.opened` | event | `mode` (new / existing) | 5.1, 9.2 |
+| `editor.point_added`, `editor.undo`, `editor.redo`, `editor.cleared`, `editor.loop_closed` | events | `point_count` | 5.3, 5.4 |
+| BRouter call | span | status, `no_route`, duration | 6.4 |
+| `steer.snap.fallback` | counter | `reason` (no_route / timeout / error) | 6.7 |
+| `steer.dem.tile_cache` | counter | `result` (hit / miss) | 6.5 |
+| `steer.snap.duration_ms` | histogram (server and client) | `snapped`; **SC-001** panel, p95 under 1000 ms | 6.8, 7.3 |
+| `snap.failed` | event | `reason` (network / server) | 7.4 |
+| `route.saved` | event | `mode` (new / existing), `named` (true/false), `distance_mi`, `leg_count`, `straight_leg_count` | 8.3, 9.3 |
+| `steer.editor.time_to_save_s` | histogram | from `editor.opened` to `route.saved`; **SC-002** panel, under 120 s | 8.3 |
+| `route.save_failed` | error event | `reason` | 8.3 |
+| `editor.discard_prompted`, `editor.discarded` | events | `trigger` (cancel / beforeunload) | 8.4, 8.5 |
+| `route.deleted` | event | `route_id` | 9.1 |
+| `steer.route.select_to_fit_ms` | histogram | **SC-003** panel | 4.3 |
+
+---
+
+## Phase 0: Foundations (repo, CI, telemetry, design)
 
 - [ ] **0.1 Move the Vite app into `frontend/`**
   Move `src/`, `public/`, `index.html`, `package*.json`, `tsconfig*.json`, `vite.config.ts`, and `.oxlintrc.json` into `frontend/`. Update `.gitignore` and reinstall `node_modules`.
@@ -97,11 +138,54 @@ These were settled while planning and resolve open items in the spec.
   Add a root `docker-compose.yml` with a `db` service (a PostGIS image, a named volume, and port 5432).
   *Verify*: `docker compose up -d db`, then `SELECT postgis_full_version();` works in psql.
 
-- [ ] **0.7 Root README for developers**
-  Replace the Vite template text with setup and run steps for the new layout. Keep the About section.
-  *Verify*: following the README from a clean checkout starts the frontend and the database.
+- [ ] **0.7 Telemetry stack in Docker Compose**
+  - Add a `telemetry` service using the `grafana/otel-lgtm` image. It includes an OpenTelemetry collector, Loki (logs), Tempo (traces), Prometheus (metrics) and Grafana.
+  - Ports: Grafana on `3001:3000` (Vite already uses 3000), OTLP gRPC on `4317`, OTLP HTTP on `4318`. Add a named volume so data survives restarts.
 
-**Milestone 0**: The frontend runs from `frontend/` as modular components, lint runs in CI on every PR, the database runs in Docker, and the test runner works.
+  *Verify*: `docker compose up -d telemetry`, then Grafana opens at `localhost:3001` with the Loki, Tempo and Prometheus data sources available.
+
+- [ ] **0.8 Browser tracing**
+  - Add `src/telemetry/` with the OpenTelemetry web SDK: a tracer provider, the OTLP HTTP exporter and a batch span processor.
+  - The resource is `service.name=steer-frontend` plus `service.version` and `deployment.environment=dev`.
+  - Turn on document-load and `fetch` instrumentation. `fetch` adds `traceparent` headers to `/api` calls, so traces continue into Phoenix later.
+  - Add a Vite dev proxy from `/otlp` to `localhost:4318`, so the browser sends same-origin requests and no CORS setup is needed.
+  - Telemetry must never break the app: if export fails, drop the data quietly.
+
+  *Verify*: load the app, then find the `documentLoad` trace for `steer-frontend` in Grafana → Tempo.
+
+- [ ] **0.9 Browser logs and errors**
+  - Add a `log.debug/info/warn/error(message, attrs)` wrapper that emits OpenTelemetry log records (OTLP HTTP to Loki) carrying the active trace and span IDs. It also prints to the console in dev.
+  - Add global `error` and `unhandledrejection` handlers, and a top-level React error boundary. Each one logs at `error` level with the stack trace.
+  - Add a per-tab `session.id` attribute.
+
+  *Verify*: a Vitest test covers the wrapper's attributes. By hand, throw a test error from the console and find it in Loki with its session ID and stack trace.
+
+- [ ] **0.10 Product events and metrics**
+  - `track(name, attrs)` emits a product event: an OpenTelemetry log record with `event.name` (names follow the "Telemetry conventions" section), and it also increments a `steer.events` counter labelled by event name.
+  - `metrics.histogram(name)` and `metrics.counter(name)` helpers use the OpenTelemetry metrics SDK with the OTLP exporter.
+  - Emit the first event, `app.loaded`, with the map load time as an attribute and a histogram.
+
+  *Verify*: a Vitest test checks that `track` emits the right record. In Grafana, `app.loaded` shows up in Loki and `steer_events_total` in Prometheus.
+
+- [ ] **0.11 Steer dashboard as code**
+  - Add `telemetry/grafana/dashboards/steer.json` and a provisioning file mounted into the `telemetry` container.
+  - Start with these panels: an event count by name, recent frontend errors, and the `app.loaded` time. Later chunks add panels, including one for each success criterion (SC-001 snap time, SC-002 time to save, and so on).
+
+  *Verify*: after restarting the container, the Steer dashboard appears in Grafana with live data.
+
+- [ ] **0.12 Design foundation with frontend-design** *(UI)*
+  - Install the frontend-design plugin in Claude Code (via `/plugin`; confirm the marketplace name when installing).
+  - Use it to set a visual direction suited to a topographic hiking app, and to create `src/styles/tokens.css` with the colors, type scale, spacing, radii and shadows. Define light and dark values.
+  - Put the map route color (currently `#e6532c`) and the trail color in the tokens as well, so map layers and UI share one palette.
+  - Record the direction in a short `frontend/DESIGN.md` so later *(UI)* chunks follow it.
+
+  *Verify*: the map still renders, the tokens load globally, and `DESIGN.md` exists. Build and lint pass.
+
+- [ ] **0.13 Root README for developers**
+  Replace the Vite template text with setup and run steps for the new layout, including the telemetry stack and where to find the Steer dashboard. Keep the About section.
+  *Verify*: following the README from a clean checkout starts the frontend, the database and the telemetry stack.
+
+**Milestone 0**: The frontend runs from `frontend/` as modular components, lint runs in CI on every PR, the database and telemetry stack run in Docker, the browser sends traces, logs, errors and product events to Grafana, the test runner works, and there's a design foundation for the UI.
 
 ---
 
@@ -115,14 +199,14 @@ This phase is frontend-only and uses data the map tiles already contain, so it d
   `formatMiles(m)`, `formatFeet(m)`.
   *Verify*: Vitest tests.
 
-- [ ] **1.2 Clickable peak layer**
+- [ ] **1.2 Clickable peak layer** *(UI)*
   - Add a `PeakLayer` component on the base map's `openmaptiles` source, `mountain_peak` source-layer, filtered to `class == 'peak'` features that have a `name`.
   - It draws a small marker and a name label for each peak. Lower `rank` values show at lower zooms, so the major peaks appear first.
   - The cursor turns into a pointer when hovering a peak.
 
   *Verify*: every peak in the 0.3 table shows as a labelled peak, and hovering one shows a pointer.
 
-- [ ] **1.3 Sidebar shell and selection**
+- [ ] **1.3 Sidebar shell and selection** *(UI)*
   - A right-hand `Sidebar` next to the map, with an empty state ("Select a peak").
   - App-level selection state with two independent parts: `selectedPeak` (set here) and `selectedRouteId` (added in Phase 4). Choosing a peak doesn't clear the route, and choosing a route doesn't clear the peak.
   - The sidebar panel shows the peak while one is selected, and a close button on the panel clears it.
@@ -130,7 +214,7 @@ This phase is frontend-only and uses data the map tiles already contain, so it d
 
   *Verify*: a Vitest test covers the selection logic. By hand, check that clicking a peak updates the sidebar and that the map resizes correctly next to it.
 
-- [ ] **1.4 Peak panel**
+- [ ] **1.4 Peak panel** *(UI)*
   The sidebar shows the peak's name, its elevation in ft ("Elevation unknown" when the tiles have none), and its coordinates.
   *Verify*: Kendall Peak shows 5,781 ft. Easter Island (a small named point near Mount Washington that has no elevation in the tiles) shows "Elevation unknown".
 
@@ -151,7 +235,7 @@ This phase is frontend-only and uses data the map tiles already contain, so it d
 
   *Verify*: a Vitest test checks the priority order. By hand, open each curated link and check that it goes to the right page.
 
-- [ ] **1.8 Show the links in the peak panel**
+- [ ] **1.8 Show the links in the peak panel** *(UI)*
   - Show the links as buttons labelled "SummitPost" and "WTA hikes". Each opens in a new tab with `rel="noopener noreferrer"`.
   - Search links are marked as searches, so it's clear they aren't exact pages.
   - Peaks outside Washington show "Links are available for Washington peaks only" in place of the buttons.
@@ -180,7 +264,28 @@ This phase is frontend-only and uses data the map tiles already contain, so it d
   In `vite.config.ts`, proxy `/api` to `localhost:4000` so no CORS setup is needed. Temporarily log `/api/health` from the app.
   *Verify*: the browser console shows the health response. Remove the log afterwards.
 
-**Milestone 2**: The frontend can reach a Phoenix API backed by PostGIS.
+- [ ] **2.5 Phoenix tracing**
+  - Add `opentelemetry`, `opentelemetry_exporter`, `opentelemetry_phoenix`, `opentelemetry_bandit` and `opentelemetry_ecto`.
+  - Export over OTLP to the `telemetry` container, with `service.name=steer-backend`.
+  - Incoming `traceparent` headers continue the browser's trace.
+
+  *Verify*: calling `/api/health` from the app shows **one trace** in Tempo that runs from `steer-frontend` into `steer-backend`.
+
+- [ ] **2.6 Structured JSON logs**
+  - Add `LoggerJSON` (or a similar library) so Phoenix logs are JSON and carry the trace and span IDs.
+  - Send them to Loki through the collector (the OTLP log exporter, or collecting from stdout; decide in this chunk).
+  - Add a `Steer.Telemetry.event/2` helper for backend product events with the same `event.name` shape as the frontend's `track`.
+
+  *Verify*: an ExUnit test for `event/2`. In Grafana, the `/api/health` log line opens its trace in Tempo.
+
+- [ ] **2.7 Phoenix metrics**
+  - Export Phoenix, Ecto and BEAM VM metrics: request rate and duration by route, database query time, and memory.
+  - Choose the exporter here (see "Open questions").
+  - Add a backend row to the Steer dashboard.
+
+  *Verify*: request rate and duration for `/api/health` appear in Prometheus and on the dashboard.
+
+**Milestone 2**: The frontend can reach a Phoenix API backed by PostGIS. Browser → Phoenix → Postgres shows up as one trace, with logs and metrics in Grafana.
 
 ---
 
@@ -253,11 +358,11 @@ This phase is frontend-only and uses data the map tiles already contain, so it d
   `api/routes.ts` with typed `listRoutes`, `getRoute`, `createRoute`, `updateRoute`, and `deleteRoute`.
   *Verify*: a Vitest test with mocked `fetch` checks the URLs and parsing.
 
-- [ ] **4.2 Route list in the sidebar**
+- [ ] **4.2 Route list in the sidebar** *(UI)*
   The sidebar from 1.3 lists the saved route names above the selection panel, with an empty state when there are none.
   *Verify*: the seeded routes are listed, and selecting a peak still works.
 
-- [ ] **4.3 Select a route and draw only that route**
+- [ ] **4.3 Select a route and draw only that route** *(UI)*
   - Add `selectedRouteId` to the selection state.
   - `RouteLayer` replaces `placeholderRoute` and draws **only the selected route**. With no route selected, no route is drawn.
   - Clicking a route in the list draws it and fits the map to its bounds (`fitBounds` with padding). Clicking another route switches to it.
@@ -266,7 +371,7 @@ This phase is frontend-only and uses data the map tiles already contain, so it d
 
   *Verify*: the Vitest selection tests are extended. On load, no route is drawn. Clicking each seeded route draws only that one and frames it. With a route selected, clicking a peak shows the peak panel and the route stays on the map. Closing the peak panel shows the route's stats again.
 
-- [ ] **4.4 Route stats panel**
+- [ ] **4.4 Route stats panel** *(UI)*
   The selected route shows distance (mi), min/max elevation (ft), and gain/loss (ft), using the formatters from 1.1.
   *Verify*: the numbers match the API response after conversion.
 
@@ -276,7 +381,7 @@ This phase is frontend-only and uses data the map tiles already contain, so it d
 
 ## Phase 5: Edit mode with straight lines (US2, no routing yet)
 
-- [ ] **5.1 Mode state and Create route button**
+- [ ] **5.1 Mode state and Create route button** *(UI)*
   An app-level `mode: 'view' | 'edit'`. **Create route** enters edit mode, and an edit toolbar shell appears (Save, Cancel, Undo, Redo, Clear, Close loop, all disabled for now). Peak clicks are ignored in edit mode so that map clicks go to the editor.
   *Verify*: you can enter and leave edit mode.
 
@@ -287,11 +392,11 @@ This phase is frontend-only and uses data the map tiles already contain, so it d
 
   *Verify*: thorough Vitest coverage of each action and its edge cases.
 
-- [ ] **5.3 Click to add points**
+- [ ] **5.3 Click to add points** *(UI)*
   In edit mode, a map click dispatches `ADD_POINT`, including a click on a peak. Waypoint markers are drawn, and legs are drawn as dashed straight lines.
   *Verify*: clicking A, B, C draws markers and straight legs, and clicking a peak adds a waypoint rather than selecting it.
 
-- [ ] **5.4 Connect the toolbar**
+- [ ] **5.4 Connect the toolbar** *(UI)*
   Undo, Redo, Clear, and Close loop dispatch their actions, and each button is enabled only when its action is possible.
   *Verify*: go through spec US2 scenarios 2–4 by hand.
 
@@ -350,7 +455,7 @@ This phase is frontend-only and uses data the map tiles already contain, so it d
   Leg geometry lives outside the undo history, in a map keyed by the from/to coordinates, with a status of `pending | snapped | straight`. Undo and redo reuse cached legs and never request them again.
   *Verify*: Vitest tests for cache hits across undo and redo.
 
-- [ ] **7.3 Optimistic snapping**
+- [ ] **7.3 Optimistic snapping** *(UI)*
   A new leg (including the close-loop leg) draws as a dashed straight line right away, then is swapped for the snapped geometry when the response arrives. Stale requests are aborted when you undo or clear.
   *Verify*: clicking along trails near Snoqualmie Pass (e.g. the PCT toward Kendall Katwalk) shows legs following them in under 1 s (SC-001, checked in devtools).
 
@@ -372,11 +477,11 @@ This phase is frontend-only and uses data the map tiles already contain, so it d
   During create and update, any leg coordinates without Z (legs that fell back in the client in 7.4) get DEM-sampled Z before the stats are computed.
   *Verify*: an ExUnit test.
 
-- [ ] **8.3 Save dialog**
+- [ ] **8.3 Save dialog** *(UI)*
   Save opens a small dialog with an optional name field. On submit it POSTs, returns to view mode, refreshes the list, and selects the new route. If any legs are still pending, Save waits for them.
   *Verify*: saving without a name gives a stats-based name, and the route appears in the sidebar.
 
-- [ ] **8.4 Dirty tracking and in-app confirm (FR-007)**
+- [ ] **8.4 Dirty tracking and in-app confirm (FR-007)** *(UI)*
   The editor is dirty when its waypoints differ from the state it was opened with. Cancel while dirty shows a confirm dialog.
   *Verify*: Cancel with no changes exits right away. With changes, it asks first.
 
@@ -393,7 +498,7 @@ This phase is frontend-only and uses data the map tiles already contain, so it d
 
 ## Phase 9: Edit and delete existing routes (US5, P2)
 
-- [ ] **9.1 Delete**
+- [ ] **9.1 Delete** *(UI)*
   A Delete button on the selected route opens a confirm dialog and then sends `DELETE`. The route disappears from the map and the sidebar, and the selection clears.
   *Verify*: after deleting and reloading, the route is still gone.
 
@@ -455,3 +560,4 @@ This phase is frontend-only and uses data the map tiles already contain, so it d
 | SC-004 Identical after reload | 8.6 |
 | SC-005 Trails before roads | 6.3 |
 | SC-006 Peak details are instant and curated links are correct | 1.4, 1.7 |
+| FR-014 Telemetry | 0.7–0.11, 2.5–2.7, plus every feature chunk (see "Telemetry conventions") |
