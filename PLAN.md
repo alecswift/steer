@@ -15,7 +15,7 @@ These were settled while planning and resolve open items in the spec.
 | Routing engine (FR-012) | **Self-hosted BRouter**, called only by Phoenix through a `Steer.Routing` adapter. The frontend never talks to BRouter directly. |
 | Segment files | **Open.** Solved in chunk 6.2 (see "Open questions"). |
 | Elevation source | Snapped legs use **BRouter's Z values**. Straight fallback legs get Z sampled from **AWS Terrarium tiles in Phoenix**. |
-| Repo layout | `frontend/` (Vite + React) and `backend/` (Phoenix). `docker-compose.yml` at the root. |
+| Repo layout | `web/` (Vite + React) and `server/` (Phoenix). `docker-compose.yml` at the root. |
 | Local infra | **Docker Compose** runs PostGIS, BRouter and the telemetry stack. Phoenix and Vite run natively. |
 | Telemetry | Telemetry is **central to the project**. **OpenTelemetry** is used everywhere, for structured logs, traces, metrics, product events and errors. The data goes to a **Grafana LGTM** container (Loki, Grafana, Tempo, and Prometheus/Mimir for metrics) in Docker Compose. It starts in Phase 0 (browser) and Phase 2 (Phoenix), and **every chunk after that adds its own telemetry** (see "Telemetry conventions"). The same OpenTelemetry setup can later send to a hosted service by changing an endpoint. |
 | Testing | **ExUnit** (backend), **Vitest** (frontend logic), and **manual verify steps** in every chunk. No end-to-end tests in the MVP. |
@@ -87,15 +87,15 @@ These were settled while planning and resolve open items in the spec.
 
 ## Phase 0: Foundations (repo, CI, telemetry, design)
 
-- [ ] **0.1 Move the Vite app into `frontend/`**
-  Move `src/`, `public/`, `index.html`, `package*.json`, `tsconfig*.json`, `vite.config.ts`, and `.oxlintrc.json` into `frontend/`. Update `.gitignore` and reinstall `node_modules`.
-  *Verify*: `cd frontend && npm run dev` shows the same map as before. `npm run build` and `npm run lint` pass.
+- [x] **0.1 Move the Vite app into `web/`**
+  Move `src/`, `public/`, `index.html`, `package*.json`, `tsconfig*.json`, `vite.config.ts`, and `.oxlintrc.json` into `web/`. Update `.gitignore` and reinstall `node_modules`.
+  *Verify*: `cd web && npm run dev` shows the same map as before. `npm run build` and `npm run lint` pass.
 
-- [ ] **0.2 GitHub Actions lint workflow**
-  Add `.github/workflows/ci.yml`. It runs on pushes to `main` and on every pull request:
+- [x] **0.2 GitHub Actions lint workflow**
+  Add `.github/workflows/lint.yml`. It runs on pushes to `main` and on every pull request:
   - check out the repo
-  - `actions/setup-node` with Node 24 and npm caching keyed on `frontend/package-lock.json`
-  - `npm ci` and `npm run lint` (oxlint) in `frontend/`
+  - `actions/setup-node` with Node 24 and npm caching keyed on `web/package-lock.json`
+  - `npm ci` and `npm run lint` (oxlint) in `web/`
 
   The build fails on lint errors; warnings are allowed. There's no deploy step yet, because hosting isn't decided.
   *Verify*: push a branch and open a PR. The lint check passes. A commit with a deliberate lint error (e.g. a hook called inside a condition) fails the check.
@@ -178,7 +178,7 @@ These were settled while planning and resolve open items in the spec.
   - Install the frontend-design plugin in Claude Code (via `/plugin`; confirm the marketplace name when installing).
   - Use it to set a visual direction suited to a topographic hiking app, and to create `src/styles/tokens.css` with the colors, type scale, spacing, radii and shadows. Define light and dark values.
   - Put the map route color (currently `#e6532c`) and the trail color in the tokens as well, so map layers and UI share one palette.
-  - Record the direction in a short `frontend/DESIGN.md` so later *(UI)* chunks follow it.
+  - Record the direction in a short `web/DESIGN.md` so later *(UI)* chunks follow it.
 
   *Verify*: the map still renders, the tokens load globally, and `DESIGN.md` exists. Build and lint pass.
 
@@ -186,7 +186,7 @@ These were settled while planning and resolve open items in the spec.
   Replace the Vite template text with setup and run steps for the new layout, including the telemetry stack and where to find the Steer dashboard. Keep the About section.
   *Verify*: following the README from a clean checkout starts the frontend, the database and the telemetry stack.
 
-**Milestone 0**: The frontend runs from `frontend/` as modular components, lint runs in CI on every PR, the database and telemetry stack run in Docker, the browser sends traces, logs, errors and product events to Grafana, the test runner works, and there's a design foundation for the UI.
+**Milestone 0**: The frontend runs from `web/` as modular components, lint runs in CI on every PR, the database and telemetry stack run in Docker, the browser sends traces, logs, errors and product events to Grafana, the test runner works, and there's a design foundation for the UI.
 
 ---
 
@@ -250,7 +250,7 @@ This phase is frontend-only and uses data the map tiles already contain, so it d
 ## Phase 2: Backend skeleton
 
 - [ ] **2.1 Generate the Phoenix API app**
-  `mix phx.new backend --app steer --no-html --no-assets --no-live --no-mailer --no-dashboard --no-gettext --binary-id`. Point the dev and test database config at the Compose database.
+  `mix phx.new server --app steer --no-html --no-assets --no-live --no-mailer --no-dashboard --no-gettext --binary-id`. Point the dev and test database config at the Compose database.
   *Verify*: `mix ecto.create` and `mix test` pass.
 
 - [ ] **2.2 Health endpoint**
