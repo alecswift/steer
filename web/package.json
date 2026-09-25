@@ -11,6 +11,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.222.0",
+    "@opentelemetry/instrumentation": "^0.222.0",
+    "@opentelemetry/instrumentation-document-load": "^0.67.0",
+    "@opentelemetry/instrumentation-fetch": "^0.222.0",
+    "@opentelemetry/resources": "^2.11.0",
+    "@opentelemetry/sdk-trace-web": "^2.11.0",
+    "@opentelemetry/semantic-conventions": "^1.43.0",
     "maplibre-contour": "^0.1.1",
     "maplibre-gl": "^6.10.0",
     "react": "^19.2.8",

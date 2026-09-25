@@ -145,7 +145,7 @@ These were settled while planning and resolve open items in the spec.
 
   *Verify*: `docker compose up -d telemetry`, then Grafana opens at `localhost:3001` with the Loki, Tempo and Prometheus data sources available.
 
-- [ ] **0.8 Browser tracing**
+- [x] **0.8 Browser tracing**
   - Add `src/telemetry/` with the OpenTelemetry web SDK: a tracer provider, the OTLP HTTP exporter and a batch span processor.
   - The resource is `service.name=steer-frontend` plus `service.version` and `deployment.environment=dev`.
   - Turn on document-load and `fetch` instrumentation. `fetch` adds `traceparent` headers to `/api` calls, so traces continue into Phoenix later.
