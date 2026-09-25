@@ -23,6 +23,8 @@
   --map-contour-line: rgba(120, 80, 40, 0.6);
   --map-contour-label: #5c3d1f;
   --map-contour-label-halo: #fff1bd;
+  --map-peak: #3a2614;
+  --map-peak-halo: #fff1bd;
 
   /* Type: Overpass, a Highway Gothic revival, for everything. */
   --font-sans: 'Overpass Variable', system-ui, sans-serif;

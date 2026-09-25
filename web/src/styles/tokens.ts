@@ -11,4 +11,6 @@ export const mapColors = {
   contourLine: 'rgba(120, 80, 40, 0.6)',
   contourLabel: '#5c3d1f',
   contourLabelHalo: '#fff1bd',
+  peak: '#3a2614',
+  peakHalo: '#fff1bd',
 } as const

@@ -57,6 +57,7 @@ MapLibre can't read CSS variables, so map colours live in [`src/styles/tokens.ts
 | `trail` | `#7B1FA2` | Purple reads clearly on green terrain and never looks like a road. |
 | `contourLine` | `rgba(120, 80, 40, 0.6)` | Classic brown contours. |
 | `contourLabel` / `contourLabelHalo` | `#5C3D1F` / `#FFF1BD` | Halo uses the palette's cream. |
+| `peak` / `peakHalo` | `#3A2614` / `#FFF1BD` | Peak triangle and name. A darker ink than the contour labels, so summits read above the contour lines without adding a new hue. |
 
 These map colours sit outside the UI palette on purpose: palette greens and tans would disappear into the forest and land colours of the base map.
 
