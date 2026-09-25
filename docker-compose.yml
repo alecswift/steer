@@ -19,5 +19,23 @@ services:
       timeout: 5s
       retries: 10
 
+  # OpenTelemetry collector + Loki (logs), Tempo (traces), Prometheus
+  # (metrics) and Grafana, all in one dev-only container.
+  telemetry:
+    image: grafana/otel-lgtm:0.33.1
+    ports:
+      - "127.0.0.1:3001:3000" # Grafana (Vite already uses 3000)
+      - "127.0.0.1:4317:4317" # OTLP gRPC
+      - "127.0.0.1:4318:4318" # OTLP HTTP
+    volumes:
+      - telemetry-data:/data
+    healthcheck:
+      # The image writes this file once every component is ready.
+      test: ["CMD-SHELL", "test -f /tmp/ready"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
 volumes:
   db-data:
+  telemetry-data:

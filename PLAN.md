@@ -139,7 +139,7 @@ These were settled while planning and resolve open items in the spec.
   Add a root `docker-compose.yml` with a `db` service (a PostGIS image, a named volume, and port 5432).
   *Verify*: `docker compose up -d db`, then `SELECT postgis_full_version();` works in psql.
 
-- [ ] **0.7 Telemetry stack in Docker Compose**
+- [x] **0.7 Telemetry stack in Docker Compose**
   - Add a `telemetry` service using the `grafana/otel-lgtm` image. It includes an OpenTelemetry collector, Loki (logs), Tempo (traces), Prometheus (metrics) and Grafana.
   - Ports: Grafana on `3001:3000` (Vite already uses 3000), OTLP gRPC on `4317`, OTLP HTTP on `4318`. Add a named volume so data survives restarts.
 
