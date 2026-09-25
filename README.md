@@ -19,7 +19,7 @@ Steer is an early hiking map prototype displaying trails, topographic contour li
 - **Node 24** (CI uses the same version)
 - **Docker Desktop**, with Docker Compose
 
-If your terminal says `docker: command not found`, add Docker's CLI folder to your `PATH`:
+On macOS, if Docker Desktop is installed but your terminal says `docker: command not found`, add its CLI folder to your `PATH`:
 
 ```sh
 export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
