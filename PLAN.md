@@ -154,7 +154,7 @@ These were settled while planning and resolve open items in the spec.
 
   *Verify*: load the app, then find the `documentLoad` trace for `steer-frontend` in Grafana → Tempo.
 
-- [ ] **0.9 Browser logs and errors**
+- [x] **0.9 Browser logs and errors**
   - Add a `log.debug/info/warn/error(message, attrs)` wrapper that emits OpenTelemetry log records (OTLP HTTP to Loki) carrying the active trace and span IDs. It also prints to the console in dev.
   - Add global `error` and `unhandledrejection` handlers, and a top-level React error boundary. Each one logs at `error` level with the stack trace.
   - Add a per-tab `session.id` attribute.

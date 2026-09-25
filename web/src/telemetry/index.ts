@@ -1,12 +1,19 @@
+import { installErrorHandlers } from './errors'
+import { initLogs } from './logs'
 import { initTracing } from './tracing'
 
-// Starts browser telemetry. Telemetry must never break the app, so any
-// failure here is swallowed and the app runs without it. Export failures
-// later on are dropped quietly by the SDK.
+export { ErrorBoundary } from './ErrorBoundary'
+export { log } from './logs'
+
+// Starts browser telemetry. Telemetry must never break the app, so a
+// failing part is skipped and the rest still starts. Export failures later
+// on are dropped quietly by the SDK.
 export function initTelemetry() {
-  try {
-    initTracing()
-  } catch {
-    // Run without telemetry.
+  for (const init of [initTracing, initLogs, installErrorHandlers]) {
+    try {
+      init()
+    } catch {
+      // Run without this part of telemetry.
+    }
   }
 }
