@@ -10,6 +10,7 @@ export function HillshadeLayer() {
       tiles={[demSource.sharedDemProtocolUrl]}
       tileSize={256}
       encoding="terrarium"
+      maxzoom={13}
     >
       {/* beforeId keeps shading under roads/labels, above land+water fills */}
       <Layer {...hillshadeLayerStyle} beforeId="aeroway_fill" />
