@@ -161,7 +161,7 @@ These were settled while planning and resolve open items in the spec.
 
   *Verify*: a Vitest test covers the wrapper's attributes. By hand, throw a test error from the console and find it in Loki with its session ID and stack trace.
 
-- [ ] **0.10 Product events and metrics**
+- [x] **0.10 Product events and metrics**
   - `track(name, attrs)` emits a product event: an OpenTelemetry log record with `event.name` (names follow the "Telemetry conventions" section), and it also increments a `steer.events` counter labelled by event name.
   - `metrics.histogram(name)` and `metrics.counter(name)` helpers use the OpenTelemetry metrics SDK with the OTLP exporter.
   - Emit the first event, `app.loaded`, with the map load time as an attribute and a histogram.
