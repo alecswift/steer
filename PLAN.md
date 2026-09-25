@@ -196,7 +196,7 @@ Clicking a named peak on the map selects it. The sidebar then shows the peak's n
 
 This phase is frontend-only and uses data the map tiles already contain, so it doesn't depend on the backend. It also builds the sidebar and the selection model that the routes phases reuse later.
 
-- [ ] **1.1 Clickable peak layer** *(UI)*
+- [x] **1.1 Clickable peak layer** *(UI)*
   - Add a `PeakLayer` component on the base map's `openmaptiles` source, `mountain_peak` source-layer, filtered to `class` `peak` or `volcano` features that have a `name`. Volcanoes are their own class in the tiles, so a `peak`-only filter would hide Rainier, Baker and Hood.
   - It draws a small marker and a name label for each peak. Lower `rank` values show at lower zooms, so the major peaks appear first.
   - The cursor turns into a pointer when hovering a peak.
