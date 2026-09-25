@@ -1,9 +1,12 @@
+import { useState } from 'react'
 import Map from 'react-map-gl/maplibre'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { baseStyleUrl, defaultBounds } from '../../map/config'
 import { metrics, track } from '../../telemetry'
 import { ContourLayer } from './layers/ContourLayer'
 import { HillshadeLayer } from './layers/HillshadeLayer'
+import { PeakLayer } from './layers/PeakLayer'
+import { peakLayerId } from './layers/peaks.style'
 import { RouteLayer } from './layers/RouteLayer'
 import { TrailsLayer } from './layers/TrailsLayer'
 
@@ -25,18 +28,27 @@ function reportLoaded() {
   loadDuration.record(loadMs)
 }
 
+const interactiveLayerIds = [peakLayerId]
+
 export function MapView() {
+  const [hovering, setHovering] = useState(false)
+
   return (
     <Map
       initialViewState={{ bounds: defaultBounds }}
       style={{ width: '100vw', height: '100vh' }}
       mapStyle={baseStyleUrl}
       onLoad={reportLoaded}
+      interactiveLayerIds={interactiveLayerIds}
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => setHovering(false)}
+      cursor={hovering ? 'pointer' : undefined}
     >
       <HillshadeLayer />
       <ContourLayer />
       <TrailsLayer />
       <RouteLayer />
+      <PeakLayer />
     </Map>
   )
 }

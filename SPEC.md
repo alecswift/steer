@@ -175,7 +175,7 @@ In view mode, the user clicks a named peak on the map. The sidebar shows the pea
 - Elevation profile chart and live stats while editing
 - Dragging or directly deleting individual waypoints
 - GPX import and export
-- Layer toggles for topography and hillshade, and showing all saved routes at once
+- Layer toggles for topography, hillshade and peaks, and showing all saved routes at once. Peaks are always shown in the MVP.
 - Saved user settings (e.g. remembered layer toggles)
 - User accounts and multi-user support
 - Mobile and tablet layouts
