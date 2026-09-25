@@ -168,7 +168,7 @@ These were settled while planning and resolve open items in the spec.
 
   *Verify*: a Vitest test checks that `track` emits the right record. In Grafana, `app.loaded` shows up in Loki and `steer_events_total` in Prometheus.
 
-- [ ] **0.11 Steer dashboard as code**
+- [x] **0.11 Steer dashboard as code**
   - Add `telemetry/grafana/dashboards/steer.json` and a provisioning file mounted into the `telemetry` container.
   - Start with these panels: an event count by name, recent frontend errors, and the `app.loaded` time. Later chunks add panels for success criteria, including SC-001 snap time, SC-002 time to save, and SC-006 peak click-to-panel-render latency (p95 under 100 ms, added in 1.4).
 

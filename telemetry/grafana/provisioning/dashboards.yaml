@@ -1,0 +1,12 @@
+# Loads the Steer dashboards from the mounted folder (see docker-compose.yml).
+# Edit the JSON files in telemetry/grafana/dashboards/, not in the Grafana UI.
+apiVersion: 1
+
+providers:
+  - name: Steer
+    folder: Steer
+    type: file
+    allowUiUpdates: false
+    updateIntervalSeconds: 10
+    options:
+      path: /otel-lgtm/steer-dashboards

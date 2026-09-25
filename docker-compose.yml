@@ -29,6 +29,9 @@ services:
       - "127.0.0.1:4318:4318" # OTLP HTTP
     volumes:
       - telemetry-data:/data
+      # Steer dashboards as code (the "Steer" folder in Grafana).
+      - ./telemetry/grafana/provisioning/dashboards.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/steer.yaml:ro
+      - ./telemetry/grafana/dashboards:/otel-lgtm/steer-dashboards:ro
     healthcheck:
       # The image writes this file once every component is ready.
       test: ["CMD-SHELL", "test -f /tmp/ready"]
