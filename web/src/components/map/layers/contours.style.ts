@@ -2,6 +2,7 @@ import type {
   LineLayerSpecification,
   SymbolLayerSpecification,
 } from 'react-map-gl/maplibre'
+import { mapColors } from '../../../styles/tokens'
 
 export const contourLineLayerStyle: LineLayerSpecification = {
   id: 'contour-lines',
@@ -9,7 +10,7 @@ export const contourLineLayerStyle: LineLayerSpecification = {
   source: 'contours',
   'source-layer': 'contours',
   paint: {
-    'line-color': 'rgba(120, 80, 40, 0.6)',
+    'line-color': mapColors.contourLine,
     // level 1 = major (index) contour, 0 = minor
     'line-width': ['match', ['get', 'level'], 1, 1.2, 0.5],
   },
@@ -28,8 +29,8 @@ export const contourLabelLayerStyle: SymbolLayerSpecification = {
     'text-font': ['Noto Sans Bold'],
   },
   paint: {
-    'text-color': '#5c3d1f',
-    'text-halo-color': '#fff',
+    'text-color': mapColors.contourLabel,
+    'text-halo-color': mapColors.contourLabelHalo,
     'text-halo-width': 1,
   },
 }

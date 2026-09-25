@@ -1,0 +1,79 @@
+/* Steer design tokens. See web/DESIGN.md for how to use them. */
+
+:root {
+  color-scheme: light dark;
+
+  /* Colour: light (the base palette) */
+  --color-bg: #fff1bd;
+  --color-surface: #f3c892;
+  --color-raised: #fff8dc;
+  --color-text: #146356;
+  --color-text-muted: #4a6b5e;
+  --color-primary: #146356;
+  --color-on-primary: #fff1bd;
+  --color-accent: #a3da8d;
+  --color-on-accent: #146356;
+  --color-border: rgba(20, 99, 86, 0.28);
+  --color-focus: #146356;
+  --color-danger: #a8322a;
+
+  /* Colour: map. Mirrors mapColors in tokens.ts; same in both themes. */
+  --map-route: #e6532c;
+  --map-trail: #7b1fa2;
+  --map-contour-line: rgba(120, 80, 40, 0.6);
+  --map-contour-label: #5c3d1f;
+  --map-contour-label-halo: #fff1bd;
+
+  /* Type: Overpass, a Highway Gothic revival, for everything. */
+  --font-sans: 'Overpass Variable', system-ui, sans-serif;
+  --weight-regular: 400;
+  --weight-semibold: 600;
+  --weight-heavy: 800;
+  --text-xs: 0.75rem;   /* 12px */
+  --text-sm: 0.875rem;  /* 14px */
+  --text-md: 1rem;      /* 16px, body */
+  --text-lg: 1.125rem;  /* 18px */
+  --text-xl: 1.3125rem; /* 21px */
+  --text-2xl: 1.5rem;   /* 24px */
+  --text-3xl: 2.25rem;  /* 36px, route stats */
+  --leading-tight: 1.15;
+  --leading-body: 1.45;
+
+  /* Spacing: 4px steps */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+
+  /* Radii: sized by role, not one value everywhere */
+  --radius-sm: 3px;  /* chips, inputs */
+  --radius-md: 6px;  /* buttons */
+  --radius-lg: 10px; /* dialogs, floating panels */
+
+  /* Shadows: tinted with the primary teal, not neutral grey */
+  --shadow-1: 0 1px 2px rgba(20, 99, 86, 0.18);
+  --shadow-2: 0 6px 20px rgba(20, 99, 86, 0.22);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #0c2b26;
+    --color-surface: #133a33;
+    --color-raised: #1c4a41;
+    --color-text: #fff1bd;
+    --color-text-muted: #b8c4a8;
+    --color-primary: #a3da8d;
+    --color-on-primary: #0c2b26;
+    --color-accent: #f3c892;
+    --color-on-accent: #0c2b26;
+    --color-border: rgba(255, 241, 189, 0.2);
+    --color-focus: #a3da8d;
+    --color-danger: #ff9c8a;
+
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-2: 0 6px 20px rgba(0, 0, 0, 0.5);
+  }
+}

@@ -174,7 +174,7 @@ These were settled while planning and resolve open items in the spec.
 
   *Verify*: after restarting the container, the Steer dashboard appears in Grafana with live data.
 
-- [ ] **0.12 Design foundation with frontend-design** *(UI)*
+- [x] **0.12 Design foundation with frontend-design** *(UI)*
   - Install the frontend-design plugin in Claude Code (via `/plugin`; confirm the marketplace name when installing).
   - Use it to set a visual direction suited to a topographic hiking app, and to create `src/styles/tokens.css` with the colors, type scale, spacing, radii and shadows. Define light and dark values.
   - Put the map route color (currently `#e6532c`) and the trail color in the tokens as well, so map layers and UI share one palette.
