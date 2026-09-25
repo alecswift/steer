@@ -1,4 +1,5 @@
 import type { LineLayerSpecification } from 'react-map-gl/maplibre'
+import { mapColors } from '../../../styles/tokens'
 
 export const routeLayerStyle: LineLayerSpecification = {
   id: 'route-line',
@@ -9,7 +10,7 @@ export const routeLayerStyle: LineLayerSpecification = {
     'line-cap': 'round',
   },
   paint: {
-    'line-color': '#e6532c',
+    'line-color': mapColors.route,
     'line-width': 4,
   },
 }

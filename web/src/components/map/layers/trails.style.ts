@@ -1,4 +1,5 @@
 import type { LineLayerSpecification } from 'react-map-gl/maplibre'
+import { mapColors } from '../../../styles/tokens'
 
 // OSM's own path/pedestrian/track styling is thin, white, and doesn't render
 // below zoom 14 — invisible against terrain. This restyles the same
@@ -15,7 +16,7 @@ export const trailLayerStyle: LineLayerSpecification = {
     'line-cap': 'round',
   },
   paint: {
-    'line-color': '#7b1fa2',
+    'line-color': mapColors.trail,
     'line-width': 1.5,
     'line-dasharray': [2, 1],
   },

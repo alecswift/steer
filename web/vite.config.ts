@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
@@ -24,5 +25,9 @@ export default defineConfig({
   // Vite's dep pre-bundling breaks that URL, so it's excluded here.
   optimizeDeps: {
     exclude: ['maplibre-gl'],
+  },
+  test: {
+    // Vitest blanks CSS imports by default; tokens.test.ts reads tokens.css.
+    css: { include: [/tokens\.css/] },
   },
 })
