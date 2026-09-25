@@ -139,13 +139,13 @@ These were settled while planning and resolve open items in the spec.
   Add a root `docker-compose.yml` with a `db` service (a PostGIS image, a named volume, and port 5432).
   *Verify*: `docker compose up -d db`, then `SELECT postgis_full_version();` works in psql.
 
-- [ ] **0.7 Telemetry stack in Docker Compose**
+- [x] **0.7 Telemetry stack in Docker Compose**
   - Add a `telemetry` service using the `grafana/otel-lgtm` image. It includes an OpenTelemetry collector, Loki (logs), Tempo (traces), Prometheus (metrics) and Grafana.
   - Ports: Grafana on `3001:3000` (Vite already uses 3000), OTLP gRPC on `4317`, OTLP HTTP on `4318`. Add a named volume so data survives restarts.
 
   *Verify*: `docker compose up -d telemetry`, then Grafana opens at `localhost:3001` with the Loki, Tempo and Prometheus data sources available.
 
-- [ ] **0.8 Browser tracing**
+- [x] **0.8 Browser tracing**
   - Add `src/telemetry/` with the OpenTelemetry web SDK: a tracer provider, the OTLP HTTP exporter and a batch span processor.
   - The resource is `service.name=steer-frontend` plus `service.version` and `deployment.environment=dev`.
   - Turn on document-load and `fetch` instrumentation. `fetch` adds `traceparent` headers to `/api` calls, so traces continue into Phoenix later.
@@ -154,21 +154,21 @@ These were settled while planning and resolve open items in the spec.
 
   *Verify*: load the app, then find the `documentLoad` trace for `steer-frontend` in Grafana → Tempo.
 
-- [ ] **0.9 Browser logs and errors**
+- [x] **0.9 Browser logs and errors**
   - Add a `log.debug/info/warn/error(message, attrs)` wrapper that emits OpenTelemetry log records (OTLP HTTP to Loki) carrying the active trace and span IDs. It also prints to the console in dev.
   - Add global `error` and `unhandledrejection` handlers, and a top-level React error boundary. Each one logs at `error` level with the stack trace.
   - Add a per-tab `session.id` attribute.
 
   *Verify*: a Vitest test covers the wrapper's attributes. By hand, throw a test error from the console and find it in Loki with its session ID and stack trace.
 
-- [ ] **0.10 Product events and metrics**
+- [x] **0.10 Product events and metrics**
   - `track(name, attrs)` emits a product event: an OpenTelemetry log record with `event.name` (names follow the "Telemetry conventions" section), and it also increments a `steer.events` counter labelled by event name.
   - `metrics.histogram(name)` and `metrics.counter(name)` helpers use the OpenTelemetry metrics SDK with the OTLP exporter.
   - Emit the first event, `app.loaded`, with the map load time as an attribute and a histogram.
 
   *Verify*: a Vitest test checks that `track` emits the right record. In Grafana, `app.loaded` shows up in Loki and `steer_events_total` in Prometheus.
 
-- [ ] **0.11 Steer dashboard as code**
+- [x] **0.11 Steer dashboard as code**
   - Add `telemetry/grafana/dashboards/steer.json` and a provisioning file mounted into the `telemetry` container.
   - Start with these panels: an event count by name, recent frontend errors, and the `app.loaded` time. Later chunks add panels for success criteria, including SC-001 snap time, SC-002 time to save, and SC-006 peak click-to-panel-render latency (p95 under 100 ms, added in 1.4).
 
