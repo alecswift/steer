@@ -122,7 +122,7 @@ These were settled while planning and resolve open items in the spec.
 
   *Verify*: the map looks the same as before, except that it opens on Snoqualmie Pass with all the listed peaks in view. Build and lint pass.
 
-- [ ] **0.4 Split the map into components**
+- [x] **0.4 Split the map into components**
   This is also a refactor only.
   - `src/components/map/MapView.tsx`: the `<Map>` wrapper, which renders the layer components.
   - `src/components/map/layers/`: `HillshadeLayer.tsx`, `ContourLayer.tsx` (lines and labels), `TrailsLayer.tsx`, and `RouteLayer.tsx`. Each one owns its `<Source>` and `<Layer>`.
