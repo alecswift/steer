@@ -1,0 +1,23 @@
+services:
+  db:
+    image: postgis/postgis:18-3.6
+    # The official image is amd64-only; Apple Silicon runs it under emulation.
+    platform: linux/amd64
+    # Dev-only credentials; they match Phoenix's generated dev/test config.
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    # Postgres 18+ images keep data in a versioned subdirectory, so the
+    # volume mounts the parent (not /var/lib/postgresql/data).
+    volumes:
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  db-data:

@@ -135,7 +135,7 @@ These were settled while planning and resolve open items in the spec.
   Add Vitest and an `npm test` script, with one trivial test.
   *Verify*: `npm test` passes.
 
-- [ ] **0.6 Docker Compose with PostGIS**
+- [x] **0.6 Docker Compose with PostGIS**
   Add a root `docker-compose.yml` with a `db` service (a PostGIS image, a named volume, and port 5432).
   *Verify*: `docker compose up -d db`, then `SELECT postgis_full_version();` works in psql.
 
