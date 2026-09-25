@@ -1,4 +1,4 @@
-import { mapColors } from '../../../styles/tokens'
+import { mapColors } from '@/styles/tokens'
 
 const pixelRatio = 2
 const size = 12 // CSS px

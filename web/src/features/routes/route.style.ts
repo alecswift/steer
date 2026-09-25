@@ -1,5 +1,5 @@
 import type { LineLayerSpecification } from 'react-map-gl/maplibre'
-import { mapColors } from '../../../styles/tokens'
+import { mapColors } from '@/styles/tokens'
 
 export const routeLayerStyle: LineLayerSpecification = {
   id: 'route-line',
