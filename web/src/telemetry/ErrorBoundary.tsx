@@ -13,9 +13,9 @@ export class ErrorBoundary extends Component<Props, State> {
     return { failed: true }
   }
 
-  componentDidCatch(error: Error, info: ErrorInfo) {
+  componentDidCatch(error: unknown, info: ErrorInfo) {
     log.error(
-      error.message,
+      error instanceof Error ? error.message : 'React render error',
       {
         'error.source': 'react',
         'react.component_stack': info.componentStack ?? '',
