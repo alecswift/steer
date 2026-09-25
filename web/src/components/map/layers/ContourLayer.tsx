@@ -3,7 +3,7 @@ import { demSource } from '../../../map/dem'
 import {
   contourLabelLayerStyle,
   contourLineLayerStyle,
-} from '../../../map/styles/contours'
+} from './contours.style'
 
 const contourTileUrl = demSource.contourProtocolUrl({
   multiplier: 3.28084, // meters -> feet

@@ -118,14 +118,14 @@ These were settled while planning and resolve open items in the spec.
 
     These coordinates come from the `mountain_peak` layer in the OpenFreeMap tiles.
   - `src/map/dem.ts`: the `DemSource` setup, including `setupMaplibre`.
-  - `src/map/styles/`: one file per layer spec (`hillshade.ts`, `contours.ts`, `trails.ts`, `route.ts`).
+  - One file per layer spec (`hillshade.style.ts`, `contours.style.ts`, `trails.style.ts`, `route.style.ts`), kept next to its layer component in `src/components/map/layers/` (see 0.4). Each spec has only one consumer, so it lives with that component; `src/map/` holds only the shared, non-React setup.
 
   *Verify*: the map looks the same as before, except that it opens on Snoqualmie Pass with all the listed peaks in view. Build and lint pass.
 
 - [x] **0.4 Split the map into components**
   This is also a refactor only.
   - `src/components/map/MapView.tsx`: the `<Map>` wrapper, which renders the layer components.
-  - `src/components/map/layers/`: `HillshadeLayer.tsx`, `ContourLayer.tsx` (lines and labels), `TrailsLayer.tsx`, and `RouteLayer.tsx`. Each one owns its `<Source>` and `<Layer>`.
+  - `src/components/map/layers/`: `HillshadeLayer.tsx`, `ContourLayer.tsx` (lines and labels), `TrailsLayer.tsx`, and `RouteLayer.tsx`. Each one owns its `<Source>` and `<Layer>`, and sits next to its `*.style.ts` spec.
   - `App.tsx` becomes a thin shell that renders `MapView`, ready for the sidebar and mode state that come later.
   - Hillshade, contours and trails are always on. There are no layer toggles in the MVP.
 

@@ -1,5 +1,5 @@
 import { Layer, Source } from 'react-map-gl/maplibre'
-import { routeLayerStyle } from '../../../map/styles/route'
+import { routeLayerStyle } from './route.style'
 
 // Placeholder trail until real GPX/GeoJSON import is wired up.
 const placeholderRoute: GeoJSON.Feature<GeoJSON.LineString> = {
