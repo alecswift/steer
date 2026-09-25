@@ -6,6 +6,7 @@ type Props = {
   onClosePeak: () => void
 }
 
+/** Shows the selected peak with a close button, or prompts the user to select a peak. */
 export function Sidebar({ selectedPeak, onClosePeak }: Props) {
   return (
     <aside className="sidebar" aria-label="Details">

@@ -6,6 +6,7 @@ import { initialSelection, selectionReducer } from './selection'
 import { Sidebar } from './Sidebar'
 import './App.css'
 
+/** Renders the map and sidebar with shared peak selection and selection telemetry. */
 function App() {
   const [selection, dispatch] = useReducer(selectionReducer, initialSelection)
 

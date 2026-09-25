@@ -21,6 +21,7 @@ const loadDuration = metrics.histogram('steer.app.load_duration_ms', {
 // Reported once per page load, even if the map remounts (e.g. StrictMode).
 let loadReported = false
 
+/** Records the time since navigation began when the map loads, once per page load. */
 function reportLoaded() {
   if (loadReported) return
   loadReported = true
@@ -37,10 +38,14 @@ type Props = {
   onEmptyClick: () => void
 }
 
+/** Renders the map layers and forwards peak or empty-map clicks to the selection callbacks. */
 export function MapView({ onPeakClick, onEmptyClick }: Props) {
   const [hovering, setHovering] = useState(false)
 
-  // With interactiveLayerIds set, e.features holds only peak features.
+  /**
+   * Reads the first interactive peak feature and forwards it with the DOM click timestamp.
+   * Calls onEmptyClick when the click has no valid peak feature.
+   */
   function handleClick(e: MapLayerMouseEvent) {
     const feature = e.features?.[0]
     const peak = feature ? peakFromFeature(feature) : null

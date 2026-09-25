@@ -17,6 +17,10 @@ export type SelectionAction =
 
 export const initialSelection: Selection = { selectedPeak: null }
 
+/**
+ * Selects a peak with its click timestamp or clears the current peak selection.
+ * Preserves other state fields and returns the same state when clearing an empty selection.
+ */
 export function selectionReducer(state: Selection, action: SelectionAction): Selection {
   switch (action.type) {
     case 'peakSelected':
