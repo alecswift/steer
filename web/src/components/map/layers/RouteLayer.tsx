@@ -1,24 +1,16 @@
 import { Layer, Source } from 'react-map-gl/maplibre'
 import { routeLayerStyle } from './route.style'
 
-// Placeholder trail until real GPX/GeoJSON import is wired up.
-const placeholderRoute: GeoJSON.Feature<GeoJSON.LineString> = {
-  type: 'Feature',
-  properties: {},
-  geometry: {
-    type: 'LineString',
-    coordinates: [
-      [-121.7269, 46.8523],
-      [-121.7157, 46.8494],
-      [-121.7059, 46.8511],
-      [-121.6978, 46.8462],
-    ],
-  },
+type RouteLayerProps = {
+  route?: GeoJSON.Feature<GeoJSON.LineString>
 }
 
-export function RouteLayer() {
+// Draws nothing until a route is passed in (selection comes in plan chunk 4.3).
+export function RouteLayer({ route }: RouteLayerProps) {
+  if (!route) return null
+
   return (
-    <Source id="route" type="geojson" data={placeholderRoute}>
+    <Source id="route" type="geojson" data={route}>
       <Layer {...routeLayerStyle} />
     </Source>
   )

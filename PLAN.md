@@ -100,7 +100,7 @@ These were settled while planning and resolve open items in the spec.
   The build fails on lint errors; warnings are allowed. There's no deploy step yet, because hosting isn't decided.
   *Verify*: push a branch and open a PR. The lint check passes. A commit with a deliberate lint error (e.g. a hook called inside a condition) fails the check.
 
-- [ ] **0.3 Pull map config and styles out of `App.tsx`**
+- [x] **0.3 Pull map config and styles out of `App.tsx`**
   This is a refactor only; nothing on screen should change except the default view.
   - `src/map/config.ts`: the default view, the base style URL, and the DEM tile URL.
   - Change the default view from Mt. Rainier to Snoqualmie Pass. Use `initialViewState.bounds` of `[[-121.61, 47.40], [-121.36, 47.48]]`, which covers every peak listed below with a little margin.
@@ -365,7 +365,7 @@ This phase is frontend-only and uses data the map tiles already contain, so it d
 
 - [ ] **4.3 Select a route and draw only that route** *(UI)*
   - Add `selectedRouteId` to the selection state.
-  - `RouteLayer` replaces `placeholderRoute` and draws **only the selected route**. With no route selected, no route is drawn.
+  - `RouteLayer` is passed the selected route and draws **only that route**. With no route selected, no route is drawn.
   - Clicking a route in the list draws it and fits the map to its bounds (`fitBounds` with padding). Clicking another route switches to it.
   - **The route stays drawn while you look at a peak.** Selecting a peak shows the peak panel in the sidebar and leaves the route alone. Closing the peak panel (or clicking empty map) brings back the route's stats.
   - Selecting a route from the list clears any selected peak, so the sidebar shows the route you just chose.
