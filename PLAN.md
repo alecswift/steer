@@ -118,14 +118,14 @@ These were settled while planning and resolve open items in the spec.
 
     These coordinates come from the `mountain_peak` layer in the OpenFreeMap tiles.
   - `src/map/dem.ts`: the `DemSource` setup, including `setupMaplibre`.
-  - One file per layer spec (`hillshade.style.ts`, `contours.style.ts`, `trails.style.ts`, `route.style.ts`), kept next to its layer component in `src/components/map/layers/` (see 0.4). Each spec has only one consumer, so it lives with that component; `src/map/` holds only the shared, non-React setup.
+  - One file per layer spec (`hillshade.style.ts`, `contours.style.ts`, `trails.style.ts`, `route.style.ts`), kept next to its layer component in its `src/features/<name>/` folder (see 0.4). Each spec has only one consumer, so it lives with that component; `src/map/` holds only the shared, non-React setup.
 
   *Verify*: the map looks the same as before, except that it opens on Snoqualmie Pass with all the listed peaks in view. Build and lint pass.
 
 - [x] **0.4 Split the map into components**
   This is also a refactor only.
-  - `src/components/map/MapView.tsx`: the `<Map>` wrapper, which renders the layer components.
-  - `src/components/map/layers/`: `HillshadeLayer.tsx`, `ContourLayer.tsx` (lines and labels), `TrailsLayer.tsx`, and `RouteLayer.tsx`. Each one owns its `<Source>` and `<Layer>`, and sits next to its `*.style.ts` spec.
+  - `src/app/MapView.tsx`: the `<Map>` wrapper, which renders the layer components.
+  - `src/features/terrain/` (`HillshadeLayer.tsx`, `ContourLayer.tsx` with lines and labels), `src/features/trails/TrailsLayer.tsx`, and `src/features/routes/RouteLayer.tsx`. Each one owns its `<Source>` and `<Layer>`, and sits next to its `*.style.ts` spec.
   - `App.tsx` becomes a thin shell that renders `MapView`, ready for the sidebar and mode state that come later.
   - Hillshade, contours and trails are always on. There are no layer toggles in the MVP.
 
@@ -219,7 +219,7 @@ This phase is frontend-only and uses data the map tiles already contain, so it d
   *Verify*: Vitest tests for the formatters. Kendall Peak shows 5,781 ft. Easter Island (a small named point near Mount Washington that has no elevation in the tiles) shows "Elevation unknown". Click peaks and confirm the histogram and SC-006 panel show click-to-panel-render latency in Grafana.
 
 - [ ] **1.4 Washington check**
-  - Add `src/data/washington.json`, a simplified Washington State outline (roughly 100 points) made from the public-domain US Census cartographic boundary files.
+  - Add `src/features/peaks/washington.json`, a simplified Washington State outline (roughly 100 points) made from the public-domain US Census cartographic boundary files.
   - `isInWashington(lon, lat)` does a point-in-polygon test against it (e.g. `@turf/boolean-point-in-polygon`), after a quick bounding-box check first.
 
   *Verify*: Vitest tests. Inside: Snoqualmie peaks, Rainier, Mount Olympus, Steptoe Butte. Outside: Mount Hood, Mount Defiance in Oregon, Scotchman Peak (Idaho), Mount Slesse (BC).
@@ -229,7 +229,7 @@ This phase is frontend-only and uses data the map tiles already contain, so it d
   *Verify*: Vitest tests check that the URLs are encoded correctly and that links are left out for peaks outside Washington.
 
 - [ ] **1.6 Curated exact links**
-  - Add `src/data/peakLinks.ts`: exact SummitPost and WTA pages for the peaks in the 0.3 table.
+  - Add `src/features/peaks/peakLinks.ts`: exact SummitPost and WTA pages for the peaks in the 0.3 table.
   - Match entries by peak name plus a small distance check, so a different peak with the same name doesn't pick up the wrong links (e.g. Mount Defiance in Oregon).
   - Curated links take priority over search links, one site at a time.
 
@@ -355,7 +355,7 @@ This phase is frontend-only and uses data the map tiles already contain, so it d
 ## Phase 4: View mode (US1, US4)
 
 - [ ] **4.1 API client and types**
-  `api/routes.ts` with typed `listRoutes`, `getRoute`, `createRoute`, `updateRoute`, and `deleteRoute`.
+  `src/features/routes/api.ts` with typed `listRoutes`, `getRoute`, `createRoute`, `updateRoute`, and `deleteRoute`.
   *Verify*: a Vitest test with mocked `fetch` checks the URLs and parsing.
 
 - [ ] **4.2 Route list in the sidebar** *(UI)*

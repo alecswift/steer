@@ -1,0 +1,19 @@
+.app {
+  display: flex;
+  height: 100%;
+}
+
+/* min-width: 0 lets the map shrink next to the sidebar; MapLibre picks up
+   the new size through its container ResizeObserver. */
+.app-map {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+@media (max-width: 40rem) {
+  .app {
+    flex-direction: column;
+  }
+}

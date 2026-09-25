@@ -1,5 +1,5 @@
 import { Layer, Source } from 'react-map-gl/maplibre'
-import { demSource } from '../../../map/dem'
+import { demSource } from '@/map/dem'
 import { hillshadeLayerStyle } from './hillshade.style'
 
 export function HillshadeLayer() {

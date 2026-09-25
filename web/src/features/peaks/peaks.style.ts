@@ -1,5 +1,5 @@
 import type { SymbolLayerSpecification } from 'react-map-gl/maplibre'
-import { mapColors } from '../../../styles/tokens'
+import { mapColors } from '@/styles/tokens'
 
 export const peakLayerId = 'peaks'
 export const peakMarkerImageId = 'steer-peak-marker'

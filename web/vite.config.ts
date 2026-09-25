@@ -21,6 +21,10 @@ export default defineConfig({
       },
     },
   },
+  // Resolves the `@/` alias from tsconfig.app.json.
+  resolve: {
+    tsconfigPaths: true,
+  },
   // maplibre-gl constructs its worker via a URL relative to its own module;
   // Vite's dep pre-bundling breaks that URL, so it's excluded here.
   optimizeDeps: {

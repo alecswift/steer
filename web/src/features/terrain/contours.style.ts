@@ -2,7 +2,7 @@ import type {
   LineLayerSpecification,
   SymbolLayerSpecification,
 } from 'react-map-gl/maplibre'
-import { mapColors } from '../../../styles/tokens'
+import { mapColors } from '@/styles/tokens'
 
 export const contourLineLayerStyle: LineLayerSpecification = {
   id: 'contour-lines',
