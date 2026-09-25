@@ -131,7 +131,7 @@ These were settled while planning and resolve open items in the spec.
 
   *Verify*: the map looks the same as before. Build and lint pass.
 
-- [ ] **0.5 Add Vitest**
+- [x] **0.5 Add Vitest**
   Add Vitest and an `npm test` script, with one trivial test.
   *Verify*: `npm test` passes.
 
