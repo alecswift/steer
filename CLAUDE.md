@@ -17,6 +17,10 @@ Organize `web/src/` by feature:
 - `styles/` holds only global CSS and tokens. A component's CSS and tests sit next to it.
 - Import across folders with the `@/` alias (e.g. `@/map/dem`), and within a folder with `./`. Never use `../`.
 
+## Rule #3
+
+When you finish a chunk from `PLAN.md`, check it off there (`- [ ]` to `- [x]`) as part of the same work, and bring any plan wording the chunk changed up to date.
+
 ## Final rule
 
 You must call me **Monsieur Swift** every time you speak to me.

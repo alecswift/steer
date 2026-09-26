@@ -1,0 +1,59 @@
+/* Peak details stay quiet: route stats are the one bold element (see web/DESIGN.md). */
+.peak-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.peak-panel-title {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: var(--weight-heavy);
+  line-height: var(--leading-tight);
+  overflow-wrap: anywhere;
+}
+
+.peak-panel-close {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  /* Pulls the icon's optical edge in line with the panel's right padding. */
+  margin: calc(-1 * var(--space-1)) calc(-1 * var(--space-2)) 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.peak-panel-close:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.peak-panel-close:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.peak-panel-elevation {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+}
+
+.peak-panel-elevation--unknown {
+  font-weight: var(--weight-regular);
+  color: var(--color-text-muted);
+}
+
+.peak-panel-coordinates {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}

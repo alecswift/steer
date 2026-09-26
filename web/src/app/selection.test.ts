@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import type { Peak } from '@/features/peaks/peak'
 import { initialSelection, selectionReducer, type Selection } from './selection'
 
-const kendall: Peak = { name: 'Kendall Peak', elevationM: 1762, lon: -121.3899, lat: 47.4381 }
-const guye: Peak = { name: 'Guye Peak', elevationM: 1541, lon: -121.4153, lat: 47.4386 }
+const kendall: Peak = { name: 'Kendall Peak', elevationFt: 5781, lon: -121.3899, lat: 47.4381 }
+const guye: Peak = { name: 'Guye Peak', elevationFt: 5169, lon: -121.4153, lat: 47.4386 }
 
 describe('selectionReducer', () => {
   it('starts with nothing selected', () => {

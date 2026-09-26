@@ -138,11 +138,95 @@
       "options": { "legend": { "displayMode": "hidden", "placement": "bottom" }, "tooltip": { "mode": "single" } }
     },
     {
+      "id": 6,
+      "type": "stat",
+      "title": "Peak details latency (SC-006)",
+      "description": "Time from clicking a peak until its details panel has painted, over the selected time range. SC-006 target: p95 under 100 ms. From peak.panel_shown events; the steer.peak.select_to_panel_ms histogram carries the same values.",
+      "gridPos": { "x": 0, "y": 14, "w": 12, "h": 6 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "queryType": "instant",
+          "expr": "quantile_over_time(0.5, {service_name=\"steer-frontend\"} | event_name=\"peak.panel_shown\" | unwrap select_to_panel_ms [$__range]) by (service_name)",
+          "legendFormat": "p50"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "queryType": "instant",
+          "expr": "quantile_over_time(0.95, {service_name=\"steer-frontend\"} | event_name=\"peak.panel_shown\" | unwrap select_to_panel_ms [$__range]) by (service_name)",
+          "legendFormat": "p95"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "decimals": 0,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 100 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+      }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Peak details latency (maximum per interval)",
+      "description": "The line marks the 100 ms SC-006 target.",
+      "gridPos": { "x": 12, "y": 14, "w": 12, "h": 6 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "queryType": "range",
+          "expr": "max_over_time({service_name=\"steer-frontend\"} | event_name=\"peak.panel_shown\" | unwrap select_to_panel_ms [$__auto]) by (service_name)",
+          "legendFormat": "latency"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "min": 0,
+          "color": { "mode": "fixed", "fixedColor": "green" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "transparent", "value": null },
+              { "color": "red", "value": 100 }
+            ]
+          },
+          "custom": {
+            "drawStyle": "points",
+            "pointSize": 8,
+            "showPoints": "always",
+            "thresholdsStyle": { "mode": "line" }
+          }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "hidden", "placement": "bottom" }, "tooltip": { "mode": "single" } }
+    },
+    {
       "id": 5,
       "type": "logs",
       "title": "Recent frontend errors",
       "description": "Uncaught errors, unhandled rejections and React render errors. Expand a line for its stack trace and session ID; the trace_id links to Tempo.",
-      "gridPos": { "x": 0, "y": 14, "w": 24, "h": 10 },
+      "gridPos": { "x": 0, "y": 20, "w": 24, "h": 10 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {

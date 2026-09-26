@@ -14,47 +14,6 @@
   color: var(--color-text-muted);
 }
 
-.sidebar-panel-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
-.sidebar-panel-title {
-  margin: 0;
-  font-size: var(--text-xl);
-  font-weight: var(--weight-heavy);
-  line-height: var(--leading-tight);
-  overflow-wrap: anywhere;
-}
-
-.sidebar-close {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 2rem;
-  height: 2rem;
-  /* Pulls the icon's optical edge in line with the panel's right padding. */
-  margin: calc(-1 * var(--space-1)) calc(-1 * var(--space-2)) 0 0;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-md);
-  background: transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
-}
-
-.sidebar-close:hover {
-  background: var(--color-surface);
-  color: var(--color-text);
-}
-
-.sidebar-close:focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
-}
-
 /* On narrow screens the sidebar sits under the map instead. */
 @media (max-width: 40rem) {
   .sidebar {
