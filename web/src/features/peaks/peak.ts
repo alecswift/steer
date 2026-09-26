@@ -1,10 +1,11 @@
 import type { MapGeoJSONFeature } from 'maplibre-gl'
 
-// A peak from the base map's "mountain_peak" tile layer. Tiles give the
-// elevation in metres, and some named points have none.
+// A peak from the base map's "mountain_peak" tile layer. Elevation is the
+// tiles' `ele_ft`, which is more exact than converting their whole-metre
+// `ele`. Some named points have none.
 export type Peak = {
   name: string
-  elevationM: number | null
+  elevationFt: number | null
   lon: number
   lat: number
 }
@@ -17,7 +18,7 @@ export function peakFromFeature(feature: Pick<MapGeoJSONFeature, 'geometry' | 'p
   const [lon, lat] = geometry.coordinates
   return {
     name: properties.name,
-    elevationM: typeof properties.ele === 'number' ? properties.ele : null,
+    elevationFt: typeof properties.ele_ft === 'number' ? properties.ele_ft : null,
     lon,
     lat,
   }

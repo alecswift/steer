@@ -66,7 +66,7 @@ These were settled while planning and resolve open items in the spec.
 | HTTP requests | Phoenix spans + metrics | route, status, duration | 2.5, 2.7 |
 | Database queries | Ecto spans | query source, duration | 2.5 |
 | `peak.selected` | event | `peak_name`, `in_washington`, `has_curated_links` | 1.2 |
-| `steer.peak.select_to_panel_ms` | histogram (client) | From the `peak.selected` click to the peak details panel rendering; **SC-006** panel, p95 under 100 ms | 1.3 |
+| `peak.panel_shown` | event + histogram (`steer.peak.select_to_panel_ms`) | `peak_name`, `select_to_panel_ms`: from the `peak.selected` click until the peak details panel has painted. The **SC-006** panels (p95 under 100 ms) read the event from Loki, which counts every click; the histogram can miss the first click after a page load | 1.3 |
 | `peak.link_opened` | event | `site` (summitpost / wta), `link_type` (exact / search) | 1.7 |
 | `route.selected` | event | `route_id` | 4.3 |
 | `editor.opened` | event | `mode` (new / existing) | 5.1, 9.2 |
@@ -203,7 +203,7 @@ This phase is frontend-only and uses data the map tiles already contain, so it d
 
   *Verify*: every peak in the 0.3 table shows as a labelled peak, and hovering one shows a pointer.
 
-- [ ] **1.2 Sidebar shell and selection** *(UI)*
+- [x] **1.2 Sidebar shell and selection** *(UI)*
   - A right-hand `Sidebar` next to the map, with an empty state ("Select a peak").
   - App-level selection state with two independent parts: `selectedPeak` (set here) and `selectedRouteId` (added in Phase 4). Choosing a peak doesn't clear the route, and choosing a route doesn't clear the peak.
   - The sidebar panel shows the peak while one is selected, and a close button on the panel clears it.
@@ -211,12 +211,12 @@ This phase is frontend-only and uses data the map tiles already contain, so it d
 
   *Verify*: a Vitest test covers the selection logic. By hand, check that clicking a peak updates the sidebar and that the map resizes correctly next to it. Confirm `peak.selected` appears in Grafana.
 
-- [ ] **1.3 Peak panel** *(UI)*
-  - Add the imperial formatting utilities (FR-010), `formatMiles(m)` and `formatFeet(m)`. They take metric values; 4.4 reuses them for route stats.
-  - The sidebar shows the peak's name, its elevation in ft from the tiles' metric `ele` via `formatFeet` ("Elevation unknown" when the tiles have none), and its coordinates.
-  - Record `steer.peak.select_to_panel_ms` from the click that emits `peak.selected` until the details panel renders; add an SC-006 dashboard panel showing p95 against the under-100-ms target.
+- [x] **1.3 Peak panel** *(UI)*
+  - Add `formatFeet(ft)` (FR-010) in `features/peaks/format.ts`. It formats a value already in feet. `formatMiles` waits for 4.4, its first user.
+  - A `PeakPanel` in `features/peaks/` shows the peak's name, its elevation from the tiles' `ele_ft` via `formatFeet` (more exact than converting their whole-metre `ele`) ("Elevation unknown" when the tiles have none), and its coordinates as `47.4430° N, 121.3849° W`.
+  - When the panel has painted, emit `peak.panel_shown` with `select_to_panel_ms` (time since the click that emitted `peak.selected`) and record the same value in `steer.peak.select_to_panel_ms`. Add SC-006 dashboard panels showing p50/p95 against the under-100-ms target.
 
-  *Verify*: Vitest tests for the formatters. Kendall Peak shows 5,781 ft. Easter Island (a small named point near Mount Washington that has no elevation in the tiles) shows "Elevation unknown". Click peaks and confirm the histogram and SC-006 panel show click-to-panel-render latency in Grafana.
+  *Verify*: Vitest tests for the formatters. Kendall Peak shows 5,781 ft. Easter Island (a small named point near Mount Washington that has no elevation in the tiles) shows "Elevation unknown". Click peaks and confirm `peak.panel_shown` and the SC-006 panels show click-to-panel-render latency in Grafana.
 
 - [ ] **1.4 Washington check**
   - Add `src/features/peaks/washington.json`, a simplified Washington State outline (roughly 100 points) made from the public-domain US Census cartographic boundary files.
@@ -372,7 +372,7 @@ This phase is frontend-only and uses data the map tiles already contain, so it d
   *Verify*: the Vitest selection tests are extended. On load, no route is drawn. Clicking each seeded route draws only that one and frames it. With a route selected, clicking a peak shows the peak panel and the route stays on the map. Closing the peak panel shows the route's stats again.
 
 - [ ] **4.4 Route stats panel** *(UI)*
-  The selected route shows distance (mi), min/max elevation (ft), and gain/loss (ft), using the formatters from 1.3.
+  The selected route shows distance (mi), min/max elevation (ft), and gain/loss (ft), using `formatFeet` from 1.3 (after converting the API's metres to feet) and a new `formatMiles`. With routes as a second user, both move to `utils/format.ts`.
   *Verify*: the numbers match the API response after conversion.
 
 **Milestone 4**: US1 and US4 are done. You can browse the seeded routes, and each one is drawn when you select it.

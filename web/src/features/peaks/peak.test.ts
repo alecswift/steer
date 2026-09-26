@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { peakFromFeature, type Peak } from './peak'
 
-const kendall: Peak = { name: 'Kendall Peak', elevationM: 1762, lon: -121.3899, lat: 47.4381 }
+const kendall: Peak = { name: 'Kendall Peak', elevationFt: 5781, lon: -121.3899, lat: 47.4381 }
 
 describe('peakFromFeature', () => {
   const point = (coordinates: number[]) => ({ type: 'Point' as const, coordinates })
@@ -9,7 +9,7 @@ describe('peakFromFeature', () => {
   it('reads name, elevation and coordinates', () => {
     const peak = peakFromFeature({
       geometry: point([-121.3899, 47.4381]),
-      properties: { name: 'Kendall Peak', ele: 1762, class: 'peak', rank: 1 },
+      properties: { name: 'Kendall Peak', ele: 1762, ele_ft: 5781, class: 'peak', rank: 1 },
     })
     expect(peak).toEqual(kendall)
   })
@@ -19,7 +19,7 @@ describe('peakFromFeature', () => {
       geometry: point([-121.4, 47.4]),
       properties: { name: 'Easter Island', class: 'peak' },
     })
-    expect(peak?.elevationM).toBeNull()
+    expect(peak?.elevationFt).toBeNull()
   })
 
   it('rejects features without a name or that are not points', () => {
