@@ -185,7 +185,7 @@
     {
       "id": 7,
       "type": "timeseries",
-      "title": "Peak details latency per click",
+      "title": "Peak details latency (maximum per interval)",
       "description": "The line marks the 100 ms SC-006 target.",
       "gridPos": { "x": 12, "y": 14, "w": 12, "h": 6 },
       "datasource": { "type": "loki", "uid": "loki" },
