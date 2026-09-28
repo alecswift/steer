@@ -259,7 +259,7 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
 
 ## Phase 2: Backend skeleton
 
-- [ ] **2.1 Generate the Phoenix API app**
+- [x] **2.1 Generate the Phoenix API app**
   `mix phx.new server --app steer --no-html --no-assets --no-live --no-mailer --no-dashboard --no-gettext --binary-id`. Point the dev and test database config at the Compose database.
   *Verify*: `mix ecto.create` and `mix test` pass.
 
