@@ -7,5 +7,7 @@ defmodule SteerWeb.Router do
 
   scope "/api", SteerWeb do
     pipe_through :api
+
+    get "/health", HealthController, :show
   end
 end

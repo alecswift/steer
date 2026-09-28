@@ -263,8 +263,8 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
   `mix phx.new server --app steer --no-html --no-assets --no-live --no-mailer --no-dashboard --no-gettext --binary-id`. Point the dev and test database config at the Compose database.
   *Verify*: `mix ecto.create` and `mix test` pass.
 
-- [ ] **2.2 Health endpoint**
-  `GET /api/health` returns `{"status":"ok"}`, with a controller test.
+- [x] **2.2 Health endpoint**
+  `GET /api/health` runs `SELECT 1` and returns `{"status":"ok"}` (503 with `{"status":"error"}` when the database is unreachable), with a controller test. The query gives the health check's trace a database span for 2.5.
   *Verify*: `mix test`, and `curl localhost:4000/api/health` works.
 
 - [ ] **2.3 PostGIS and `geo_postgis`**
