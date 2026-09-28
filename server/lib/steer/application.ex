@@ -10,7 +10,6 @@ defmodule Steer.Application do
     Steer.Telemetry.setup()
 
     children = [
-      SteerWeb.Telemetry,
       Steer.Repo,
       {DNSCluster, query: Application.get_env(:steer, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Steer.PubSub},

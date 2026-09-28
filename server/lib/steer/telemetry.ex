@@ -20,6 +20,9 @@ defmodule Steer.Telemetry do
     OpentelemetryPhoenix.setup(adapter: :bandit)
     OpentelemetryEcto.setup([:steer, :repo])
 
+    # Metrics: request, query and VM metrics, exported to Prometheus.
+    Steer.Telemetry.Metrics.setup()
+
     # Every log made inside a span carries its trace and span IDs, for both
     # the console and the OTLP handler.
     :logger.add_primary_filter(:otel_trace_ids, {&__MODULE__.add_trace_ids/2, []})

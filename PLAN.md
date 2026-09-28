@@ -32,7 +32,6 @@ These were settled while planning and resolve open items in the spec.
 
 ### Open questions (decided in the chunk that needs them)
 
-- **Phoenix metrics export** (chunk 2.7): the OpenTelemetry metrics SDK for Erlang and Elixir is still experimental. Choose between it and PromEx exposing `/metrics` for Prometheus to scrape.
 - **Elevation noise** (chunk 3.4): whether gain/loss needs a small smoothing threshold.
 - **BRouter Docker image** (chunk 6.1): build from the upstream repo's Dockerfile or use a community image.
 - **BRouter segment acquisition** (chunk 6.2): download on demand, download the whole world upfront, or a configurable region list.
@@ -289,9 +288,9 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
 
   *Verify*: an ExUnit test for `event/2`. In Grafana, the `/api/health` log line opens its trace in Tempo.
 
-- [ ] **2.7 Phoenix metrics**
-  - Export Phoenix, Ecto and BEAM VM metrics: request rate and duration by route, database query time, and memory.
-  - Choose the exporter here (see "Open questions").
+- [x] **2.7 Phoenix metrics**
+  - Export Phoenix, Ecto and BEAM VM metrics from `Steer.Telemetry.Metrics`: request rate and duration by route (`steer.http.request.duration_ms`), database query time (`steer.db.query.duration_ms`), and memory (`steer.vm.memory_bytes`). It replaces the generated `SteerWeb.Telemetry`, whose metric definitions had no reporter.
+  - The exporter is the **OpenTelemetry metrics SDK** (`opentelemetry_experimental`, already used for logs) pushing over OTLP, rather than PromEx: it matches the browser, and Prometheus needs no scrape config. The reader is set to cumulative temporality, since Prometheus drops the SDK's default delta sums and histograms. Prometheus also rejects a whole push that has a metric with no data points, so histograms are created on their first recording, and backend counters (such as `steer.events` for `event/2`) should be too.
   - Add a backend row to the Steer dashboard.
 
   *Verify*: request rate and duration for `/api/health` appear in Prometheus and on the dashboard.

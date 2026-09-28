@@ -58,7 +58,26 @@ config :opentelemetry_exporter,
 
 config :opentelemetry_experimental,
   otlp_protocol: :http_protobuf,
-  otlp_endpoint: "http://localhost:4318"
+  otlp_endpoint: "http://localhost:4318",
+  # Export metrics every 10 s. Prometheus only takes cumulative sums and
+  # histograms over OTLP, but the SDK defaults counters and histograms to delta.
+  readers: [
+    %{
+      module: :otel_metric_reader,
+      config: %{
+        export_interval_ms: 10_000,
+        exporter: {:otel_exporter_metrics_otlp, %{}},
+        default_temporality_mapping: %{
+          counter: :temporality_cumulative,
+          observable_counter: :temporality_cumulative,
+          histogram: :temporality_cumulative,
+          observable_gauge: :temporality_cumulative,
+          updown_counter: :temporality_cumulative,
+          observable_updowncounter: :temporality_cumulative
+        }
+      }
+    }
+  ]
 
 # Send logs to Loki over OTLP. Debug logs stay local: Ecto's include query
 # parameters, which will hold route coordinates.
