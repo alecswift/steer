@@ -271,7 +271,7 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
   Add `geo_postgis`, a migration that enables the `postgis` extension, and a custom Postgrex types module.
   *Verify*: `mix ecto.migrate` succeeds, and `mix test` still passes.
 
-- [ ] **2.4 Vite proxy to Phoenix**
+- [x] **2.4 Vite proxy to Phoenix**
   In `vite.config.ts`, proxy `/api` to `localhost:4000` so no CORS setup is needed. Temporarily log `/api/health` from the app.
   *Verify*: the browser console shows the health response. Remove the log afterwards.
 
