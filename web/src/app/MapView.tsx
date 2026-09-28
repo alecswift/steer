@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Map, { AttributionControl, type MapLayerMouseEvent } from 'react-map-gl/maplibre'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import { SatelliteLayer } from '@/features/imagery/SatelliteLayer'
 import { peakFromFeature, type Peak } from '@/features/peaks/peak'
 import { PeakLayer } from '@/features/peaks/PeakLayer'
 import { peakLayerId } from '@/features/peaks/peaks.style'
@@ -76,6 +77,7 @@ export function MapView({ onPeakClick, onEmptyClick }: Props) {
     >
       {/* Bottom-left, clear of the floating sidebar. */}
       <AttributionControl position="bottom-left" compact />
+      <SatelliteLayer />
       <HillshadeLayer />
       <ContourLayer />
       <TrailsLayer />
