@@ -49,6 +49,13 @@ config :steer, SteerWeb.Endpoint,
 # configured to run both http and https servers on
 # different ports.
 
+# Send telemetry to the Compose `telemetry` container's OTLP HTTP port.
+config :opentelemetry, span_processor: :batch, traces_exporter: :otlp
+
+config :opentelemetry_exporter,
+  otlp_protocol: :http_protobuf,
+  otlp_endpoint: "http://localhost:4318"
+
 # Enable dev routes for dashboard and mailbox
 config :steer, dev_routes: true
 

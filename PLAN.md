@@ -275,7 +275,7 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
   In `vite.config.ts`, proxy `/api` to `localhost:4000` so no CORS setup is needed. Temporarily log `/api/health` from the app.
   *Verify*: the browser console shows the health response. Remove the log afterwards.
 
-- [ ] **2.5 Phoenix tracing**
+- [x] **2.5 Phoenix tracing**
   - Add `opentelemetry`, `opentelemetry_exporter`, `opentelemetry_phoenix`, `opentelemetry_bandit` and `opentelemetry_ecto`.
   - Export over OTLP to the `telemetry` container, with `service.name=steer-backend`.
   - Incoming `traceparent` headers continue the browser's trace.

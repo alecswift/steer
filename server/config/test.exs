@@ -20,6 +20,9 @@ config :steer, SteerWeb.Endpoint,
   secret_key_base: "K2xiKxoYDRz8t+VZlYlXGPHxik7Wm9HvwS4MBT0h6sgfJxrP//aqQ6hJ10LKAwx2",
   server: false
 
+# Don't export telemetry from tests.
+config :opentelemetry, traces_exporter: :none
+
 # Print only warnings and errors during test
 config :logger, level: :warning
 

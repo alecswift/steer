@@ -7,6 +7,13 @@ defmodule Steer.Application do
 
   @impl true
   def start(_type, _args) do
+    # Traces: Bandit and Phoenix spans for each request (continuing the
+    # browser's trace from its traceparent header), with Ecto query spans
+    # inside them.
+    OpentelemetryBandit.setup()
+    OpentelemetryPhoenix.setup(adapter: :bandit)
+    OpentelemetryEcto.setup([:steer, :repo])
+
     children = [
       SteerWeb.Telemetry,
       Steer.Repo,

@@ -25,6 +25,13 @@ config :steer, SteerWeb.Endpoint,
   pubsub_server: Steer.PubSub,
   live_view: [signing_salt: "cn7hqNRP"]
 
+# OpenTelemetry resource, on every trace, log and metric Phoenix sends.
+config :opentelemetry,
+  resource: [
+    service: [name: "steer-backend", version: Mix.Project.config()[:version]],
+    deployment: [environment: to_string(config_env())]
+  ]
+
 # Configure Elixir's Logger
 config :logger, :default_formatter,
   format: "$time $metadata[$level] $message\n",
