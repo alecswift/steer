@@ -56,11 +56,23 @@ config :opentelemetry_exporter,
   otlp_protocol: :http_protobuf,
   otlp_endpoint: "http://localhost:4318"
 
+config :opentelemetry_experimental,
+  otlp_protocol: :http_protobuf,
+  otlp_endpoint: "http://localhost:4318"
+
+# Send logs to Loki over OTLP. Debug logs stay local: Ecto's include query
+# parameters, which will hold route coordinates.
+config :steer, :logger, [
+  {:handler, :otel, :otel_log_handler,
+   %{
+     level: :info,
+     exporter: {:otel_exporter_logs_otlp, %{}},
+     filters: [attributes: {&Steer.Telemetry.otlp_log_attributes/2, []}]
+   }}
+]
+
 # Enable dev routes for dashboard and mailbox
 config :steer, dev_routes: true
-
-# Do not include metadata nor timestamps in development logs
-config :logger, :default_formatter, format: "[$level] $message\n"
 
 # Set a higher stacktrace during development. Avoid configuring such
 # in production as building large stacktraces may be expensive.

@@ -282,9 +282,9 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
 
   *Verify*: calling `/api/health` from the app shows **one trace** in Tempo that runs from `steer-frontend` into `steer-backend`.
 
-- [ ] **2.6 Structured JSON logs**
-  - Add `LoggerJSON` (or a similar library) so Phoenix logs are JSON and carry the trace and span IDs.
-  - Send them to Loki through the collector (the OTLP log exporter, or collecting from stdout; decide in this chunk).
+- [x] **2.6 Structured JSON logs**
+  - Add `LoggerJSON` so Phoenix's console logs are JSON. A `:logger` primary filter in `Steer.Telemetry` adds the active span's trace and span IDs to every log.
+  - Send them to Loki with the **OTLP log exporter**: `opentelemetry_experimental`'s `otel_log_handler`, set up in dev config. Collecting stdout was ruled out because Phoenix runs natively, outside the container. The handler only sends `info` and above, because Ecto's `debug` query logs include parameters, which will hold route coordinates.
   - Add a `Steer.Telemetry.event/2` helper for backend product events with the same `event.name` shape as the frontend's `track`.
 
   *Verify*: an ExUnit test for `event/2`. In Grafana, the `/api/health` log line opens its trace in Tempo.

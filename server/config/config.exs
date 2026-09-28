@@ -32,10 +32,10 @@ config :opentelemetry,
     deployment: [environment: to_string(config_env())]
   ]
 
-# Configure Elixir's Logger
-config :logger, :default_formatter,
-  format: "$time $metadata[$level] $message\n",
-  metadata: [:request_id]
+# Logs are JSON lines, carrying the trace and span IDs when there's an
+# active span (see Steer.Telemetry).
+config :logger, :default_handler,
+  formatter: {LoggerJSON.Formatters.Basic, metadata: [:request_id]}
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
