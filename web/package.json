@@ -8,10 +8,11 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "test": "vitest run",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "peak-links": "node scripts/fetch-peak-links.ts"
   },
   "dependencies": {
-    "@fontsource-variable/overpass": "^5.3.0",
+    "@fontsource-variable/public-sans": "^5.3.0",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/api-logs": "^0.222.0",
     "@opentelemetry/exporter-logs-otlp-http": "^0.222.0",

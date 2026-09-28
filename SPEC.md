@@ -5,7 +5,7 @@
 **Scope**: High-level architecture and MVP. Detailed behavior of individual features will be covered in separate feature specs.
 **Format**: Based on [GitHub Spec Kit `spec-template.md`](https://github.com/github/spec-kit/blob/main/templates/spec-template.md), with a Technical Context section adapted from its `plan-template.md`.
 
-**Input**: A web app for building and saving hiking routes. **View mode** shows a topographic map with contours and hillshade, and draws whichever saved route is selected in the sidebar. **Edit mode** lets the user build a route by clicking points on the map. Each leg snaps to the most efficient path along existing trails (preferred) or roads. The user can then save and exit easily. Clicking a peak on the map shows its details, and for Washington peaks, links to SummitPost and WTA.
+**Input**: A web app for building and saving hiking routes. **View mode** shows a topographic map with contours and hillshade, and draws whichever saved route is selected in the sidebar. **Edit mode** lets the user build a route by clicking points on the map. Each leg snaps to the most efficient path along existing trails (preferred) or roads. The user can then save and exit easily. Clicking a peak on the map shows its details, and for Washington peaks, links to SummitPost, Peakbagger and WTA.
 
 ---
 
@@ -85,15 +85,15 @@ From a selected route in the sidebar, the user clicks **Edit** to open it in edi
 
 ### User Story 6 - Look up a peak (Priority: P3)
 
-In view mode, the user clicks a named peak on the map. The sidebar shows the peak's name and elevation. For peaks in Washington State, it also links to the peak's SummitPost page and to related hikes on WTA.
+In view mode, the user clicks a named peak on the map. The sidebar shows the peak's name and elevation. For peaks in Washington State, it also links to the peak's SummitPost and Peakbagger pages and to related hikes on WTA.
 
 **Why this priority**: Useful for planning a trip, but not part of building routes.
 
 **Independent Test**: Click Kendall Peak. The sidebar shows its details, and each link opens the right page in a new tab.
 
 **Acceptance Scenarios**:
-1. **Given** view mode, **When** the user clicks a named peak in Washington State, **Then** the sidebar shows its name, elevation (ft) and links to SummitPost and WTA.
-2. **Given** a Washington peak with no curated links, **When** it is selected, **Then** the links are search links for that peak name.
+1. **Given** view mode, **When** the user clicks a named peak in Washington State, **Then** the sidebar shows its name, elevation (ft) and links to SummitPost, Peakbagger and WTA.
+2. **Given** a Washington peak with no exact page on a site, **When** it is selected, **Then** that site's link is a search for the peak's name.
 3. **Given** a peak outside Washington, **When** it is selected, **Then** the sidebar shows its name and elevation with no links, and a note that links cover Washington peaks only.
 4. **Given** a route is selected and drawn, **When** the user clicks a peak, **Then** the sidebar shows the peak and the route stays drawn on the map.
 
@@ -105,7 +105,8 @@ In view mode, the user clicks a named peak on the map. The sidebar shows the pea
 - The routing service is slow or unavailable: the user must not lose route progress.
 - Routes can be in any region of the world, including the antimeridian and polar areas where map projections distort.
 - A saved route has no name: the generated name must be unique enough to tell routes apart in the sidebar.
-- Two peaks share a name (e.g. Mount Defiance near Snoqualmie Pass and Mount Defiance in Oregon): curated links must only attach to the right one, so they are matched by location as well as name.
+- Two peaks share a name (e.g. Mount Defiance near Snoqualmie Pass and Mount Defiance in Oregon): exact links must only attach to the right one, so they are matched by location as well as name.
+- A WTA hike rarely has the peak's exact name ("Kendall Katwalk" for Kendall Peak), and its location is the trailhead, not the summit: hikes are matched by a looser name rule and a wider distance.
 - A peak has no elevation in the map data: the sidebar shows "Elevation unknown" and still shows its links.
 - A peak without a name is not clickable, since there is nothing to link to.
 - A peak near the Washington border: whether it gets links depends on the state outline, not a rough bounding box.
@@ -130,7 +131,7 @@ In view mode, the user clicks a named peak on the map. The sidebar shows the pea
 - **FR-010**: All measurements MUST be shown in imperial units (miles, feet).
 - **FR-011**: The system MUST support routes anywhere in the world.
 - **FR-012**: The system MUST use self-hosted BRouter for routing/snapping with a hiking profile that prefers trails. The Phoenix API MUST be the only component that accesses BRouter, and MUST do so through the `Steer.Routing` adapter. The frontend MUST request snapped legs through Phoenix.
-- **FR-013**: In view mode, users MUST be able to click a named peak to see its name and elevation. For peaks in Washington State, the system MUST also show links to SummitPost and WTA. The links go to exact pages where a curated link exists, and to site searches otherwise. AllTrails is out of scope because it has no API and forbids scraping.
+- **FR-013**: In view mode, users MUST be able to click a named peak to see its name and elevation. For peaks in Washington State, the system MUST also show links to SummitPost, Peakbagger and WTA. The links go to exact pages where the bundled link indexes have one, and to site searches otherwise. AllTrails is out of scope because it has no API and forbids scraping.
 - **FR-014**: The system MUST emit telemetry from the start of development: structured logs, distributed traces (browser → API → database and routing engine), metrics, product events for key user actions, and frontend errors. All of it MUST be queryable in one place. Each measurable success criterion MUST have a metric so it can be checked from real use. Telemetry MUST NOT include personal data or route coordinates, and failures in telemetry MUST NOT affect the app.
 
 ### Key Entities
@@ -139,7 +140,8 @@ In view mode, the user clicks a named peak on the map. The sidebar shows the pea
 - **Route**: Name (optional or generated), owner, ordered waypoints, the resolved snapped geometry (a line with elevation), computed stats (distance, min/max elevation, gain, loss), and timestamps.
 - **Waypoint**: One user-clicked point (longitude, latitude) in a route's ordered list. The waypoints are kept so a route can be re-snapped and edited.
 - **Peak**: A named summit from the base map's data: name, location, elevation (when known) and rank (how prominent it is on the map). Peaks are read from the map tiles and are not stored by Steer.
-- **Peak Link**: A link from a Washington peak to its SummitPost page or to WTA hikes. It is either an exact page from a small curated list, or a search for the peak's name on that site.
+- **Peak Link**: A link from a Washington peak to its SummitPost or Peakbagger page, or to WTA hikes. It is either an exact page from a bundled link index, or a search for the peak's name on that site.
+- **Link Index**: A bundled list of one site's pages in Washington, each with only a name, URL and location. It is collected once by a harvest script, not by Steer.
 - **User Settings** *(future)*: Saved preferences such as default layer visibility.
 
 ---
@@ -153,7 +155,7 @@ In view mode, the user clicks a named peak on the map. The sidebar shows the pea
 - **SC-003**: Selecting a route in the sidebar draws it and fits the map with no visible delay.
 - **SC-004**: A saved route reloads with identical geometry and stats after a page refresh.
 - **SC-005**: For any route that has at least one trail option, the snapped path follows trails and uses roads only where no trail connects.
-- **SC-006**: Clicking a peak shows its details in the sidebar with no visible delay (click-to-panel-render latency under 100 ms at p95), and every curated link opens the correct page.
+- **SC-006**: Clicking a peak shows its details in the sidebar with no visible delay (click-to-panel-render latency under 100 ms at p95), and every exact link opens the correct page.
 
 ---
 
@@ -167,7 +169,7 @@ In view mode, the user clicks a named peak on the map. The sidebar shows the pea
 - Hosting and deployment are not decided yet.
 - **Peak data**: peak names, locations and elevations come from the `mountain_peak` layer already in the OpenFreeMap tiles. No extra data source is needed.
 - **Washington outline**: peak links are limited to a simplified Washington State outline made from public-domain US Census boundary files.
-- **Peak links are only links**: Steer doesn't copy, cache or scrape content from SummitPost or WTA.
+- **Peak links are only links**: Steer doesn't copy, cache or scrape content from SummitPost, Peakbagger or WTA. The link indexes hold only page names, URLs and locations. They're collected once by a harvest script: SummitPost pages through the Wayback Machine (SummitPost refuses automated clients), Peakbagger pages through Wikidata only (Peakbagger's terms forbid copying its data), and WTA hikes from the data file behind WTA's hike map.
 
 ### Out of Scope (MVP)
 
@@ -182,7 +184,7 @@ In view mode, the user clicks a named peak on the map. The sidebar shows the pea
 - Snapping to terrain features such as ridgelines (stretch idea: find ridges from the elevation data)
 - AllTrails links (there is no API, and its terms forbid scraping)
 - Peak links outside Washington State
-- Exact links for every Washington peak. Bulk-importing SummitPost IDs from Wikidata is a follow-up, depending on how many peaks Wikidata covers.
+- Exact links for every Washington peak. Peaks the link indexes miss get search links.
 - Searching for peaks by name
 
 ---
@@ -216,7 +218,7 @@ flowchart LR
     Tiles["OpenFreeMap<br/>(base map, trails)"]
     DEM["AWS Terrain Tiles<br/>(elevation)"]
     Router["Self-hosted BRouter<br/>(FR-012)"]
-    Sites["SummitPost / WTA<br/>(external pages)"]
+    Sites["SummitPost / Peakbagger / WTA<br/>(external pages)"]
     Telemetry[("Grafana LGTM<br/>logs · traces · metrics · events")]
 
     UI -- "JSON / GeoJSON; snap requests" --> API
@@ -235,4 +237,4 @@ flowchart LR
 - **Stats**: distance is computed with PostGIS geography functions (`ST_Length`). Elevation gain and loss come from the Z values sampled from the DEM along the resolved line.
 - **Undo/redo** is client-side state in edit mode. Only the saved route is sent to the backend.
 - **Performance**: SC-001's sub-second target requires the Phoenix-to-BRouter request and response path to be fast enough for each snapped leg.
-- **Peaks** are entirely client-side. A MapLibre layer draws the tiles' `mountain_peak` features and handles clicks. Links are built in the browser, from the curated list or from each site's search URL. The Washington check is a point-in-polygon test against the bundled state outline. The peak feature doesn't use the backend.
+- **Peaks** are entirely client-side. A MapLibre layer draws the tiles' `mountain_peak` features and handles clicks. Links are built in the browser, from the bundled link indexes (loaded when a Washington peak is first selected) or from each site's search URL. The Washington check is a point-in-polygon test against the bundled state outline. The peak feature doesn't use the backend.

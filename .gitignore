@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Progress cache for scripts/fetch-peak-links.ts
+web/scripts/.cache

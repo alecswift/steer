@@ -1,26 +1,46 @@
-/* Flush to the right edge with no radius, on --color-bg (see web/DESIGN.md). */
+/* A dark instrument panel floating over the map's top-right corner (see
+   web/DESIGN.md). It grows with its content, up to the window's height. */
 .sidebar {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
   box-sizing: border-box;
-  flex: 0 0 20rem;
+  width: 22rem;
+  max-height: calc(100% - 2 * var(--space-4));
   overflow-y: auto;
   padding: var(--space-5);
-  background: var(--color-bg);
-  border-left: 1px solid var(--color-border);
+  background: var(--color-bg-translucent);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  backdrop-filter: blur(14px) saturate(1.3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-2);
+  color: var(--color-text);
 }
 
 .sidebar-empty {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
   margin: 0;
-  max-width: 24ch;
   color: var(--color-text-muted);
 }
 
-/* On narrow screens the sidebar sits under the map instead. */
+.sidebar-empty-mark {
+  flex: none;
+  color: var(--color-primary);
+}
+
+/* On narrow screens it becomes a sheet along the bottom, above the
+   attribution button. */
 @media (max-width: 40rem) {
   .sidebar {
-    flex: 0 0 auto;
+    top: auto;
+    left: var(--space-3);
+    right: var(--space-3);
+    bottom: calc(var(--space-3) + 2rem);
+    width: auto;
     max-height: 45vh;
     padding: var(--space-4);
-    border-left: 0;
-    border-top: 1px solid var(--color-border);
   }
 }

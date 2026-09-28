@@ -49,7 +49,10 @@ npm run dev      # start the dev server
 npm run build    # type-check and build
 npm run lint     # run oxlint (CI runs this on every PR)
 npm test         # run the Vitest tests
+npm run peak-links [summitpost|peakbagger|wta]   # regenerate the peak link indexes (one-time; SummitPost takes hours)
 ```
+
+How the peak link indexes are made, and how to add another state: [web/scripts/PEAK_LINKS.md](web/scripts/PEAK_LINKS.md).
 
 ## Database
 

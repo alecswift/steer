@@ -26,13 +26,12 @@ These were settled while planning and resolve open items in the spec.
 | Snap UX | **Optimistic**. A dashed straight leg appears right away and is replaced by the snapped geometry when it arrives. |
 | Default map view | **Snoqualmie Pass**, framed from Mount Defiance, Web Mountain and Bandera in the west to Guye, Kendall and Kaleetan in the east. Defined as bounds, not center and zoom, so it frames the same area on any screen size. This area is also the test area for seeds and routing checks. |
 | Peak data | Comes from the base map's own `mountain_peak` tile layer (`name`, `ele`, `ele_ft`, `rank`, available from zoom 7). The Liberty style doesn't draw it, so Steer adds its own layer. No backend is needed. |
-| Peak links | **SummitPost** and **WTA** only. AllTrails is dropped because there's no API and its terms forbid scraping. Links are shown only for peaks in **Washington State**, checked against a simplified state outline (a bounding box would also catch parts of Oregon, Idaho and BC). They're built from each site's **search URL**, with a small **curated list** of exact pages for the Snoqualmie peaks that takes priority. Peaks outside Washington still show their name and elevation, with no links. |
+| Peak links | **SummitPost**, **Peakbagger** and **WTA**. AllTrails is dropped because there's no API and its terms forbid scraping. Links are shown only for peaks in **Washington State**, checked against a simplified state outline (a bounding box would also catch parts of Oregon, Idaho and BC). Exact pages come from **link indexes** bundled with the app (chunk 1.6): names, URLs and locations only, collected once by a harvest script from the Wayback Machine, Wikidata and WTA's hike map data. Peaks with no exact page get each site's **search URL**. Peaks outside Washington still show their name and elevation, with no links. |
 | Map layers | Hillshade, contours and trails are **always on**. There are no layer toggles in the MVP; they're future work. In view mode, only the **saved route selected in the sidebar** is drawn. In edit mode, the active route remains visible, even if unsaved. |
 | Storage units | Metric in the database and API. Converted to imperial for display only (FR-010). |
 
 ### Open questions (decided in the chunk that needs them)
 
-- **Search URL formats** (chunk 1.5): confirm the current search URL for SummitPost and WTA.
 - **Phoenix metrics export** (chunk 2.7): the OpenTelemetry metrics SDK for Erlang and Elixir is still experimental. Choose between it and PromEx exposing `/metrics` for Prometheus to scrape.
 - **Elevation noise** (chunk 3.4): whether gain/loss needs a small smoothing threshold.
 - **BRouter Docker image** (chunk 6.1): build from the upstream repo's Dockerfile or use a community image.
@@ -42,7 +41,6 @@ These were settled while planning and resolve open items in the spec.
 ### Later (after the MVP)
 
 - **Layer toggles**: switches to show or hide topography (contours), hillshade and peaks, and possibly to show all saved routes at once. Remembering the choices ties in with User Settings.
-- **Bulk exact links from Wikidata**: check how many Washington peaks in Wikidata have SummitPost IDs, matched through the OSM `wikidata` tag. If enough do, import them into a Postgres table so exact links cover thousands of peaks, not only the hand-curated few.
 
 ---
 
@@ -65,9 +63,9 @@ These were settled while planning and resolve open items in the spec.
 | Frontend errors | error log | message, stack trace, component | 0.9 |
 | HTTP requests | Phoenix spans + metrics | route, status, duration | 2.5, 2.7 |
 | Database queries | Ecto spans | query source, duration | 2.5 |
-| `peak.selected` | event | `peak_name`, `in_washington`, `has_curated_links` | 1.2 |
+| `peak.selected` | event | `peak_name` (1.2); `in_washington`, `has_exact_links` (1.7) | 1.2, 1.7 |
 | `peak.panel_shown` | event + histogram (`steer.peak.select_to_panel_ms`) | `peak_name`, `select_to_panel_ms`: from the `peak.selected` click until the peak details panel has painted. The **SC-006** panels (p95 under 100 ms) read the event from Loki, which counts every click; the histogram can miss the first click after a page load | 1.3 |
-| `peak.link_opened` | event | `site` (summitpost / wta), `link_type` (exact / search) | 1.7 |
+| `peak.link_opened` | event | `site` (summitpost / peakbagger / wta), `link_type` (exact / search) | 1.8 |
 | `route.selected` | event | `route_id` | 4.3 |
 | `editor.opened` | event | `mode` (new / existing) | 5.1, 9.2 |
 | `editor.point_added`, `editor.undo`, `editor.redo`, `editor.cleared`, `editor.loop_closed` | events | `point_count` | 5.3, 5.4 |
@@ -176,7 +174,7 @@ These were settled while planning and resolve open items in the spec.
 
 - [x] **0.12 Design foundation with frontend-design** *(UI)*
   - Install the frontend-design plugin in Claude Code (via `/plugin`; confirm the marketplace name when installing).
-  - Use it to set a visual direction suited to a topographic hiking app, and to create `src/styles/tokens.css` with the colors, type scale, spacing, radii and shadows. Define light and dark values.
+  - Use it to set a visual direction suited to a topographic hiking app, and to create `src/styles/tokens.css` with the colors, type scale, spacing, radii and shadows. Define light and dark values. (The UI has since moved to a floating sidebar and Public Sans, with a warm off-white field-guide theme in light mode and a dark instrument panel in dark mode; see `web/DESIGN.md`.)
   - Put the map route color (currently `#e6532c`) and the trail color in the tokens as well, so map layers and UI share one palette.
   - Record the direction in a short `web/DESIGN.md` so later *(UI)* chunks follow it.
 
@@ -192,9 +190,9 @@ These were settled while planning and resolve open items in the spec.
 
 ## Phase 1: Peak links (US6)
 
-Clicking a named peak on the map selects it. The sidebar then shows the peak's name and elevation. For peaks in Washington State, it also shows links to SummitPost and WTA.
+Clicking a named peak on the map selects it. The sidebar then shows the peak's name and elevation. For peaks in Washington State, it also shows links to SummitPost, Peakbagger and WTA.
 
-This phase is frontend-only and uses data the map tiles already contain, so it doesn't depend on the backend. It also builds the sidebar and the selection model that the routes phases reuse later.
+This phase is frontend-only and uses data the map tiles already contain, plus link indexes bundled with the app, so it doesn't depend on the backend. It also builds the sidebar and the selection model that the routes phases reuse later.
 
 - [x] **1.1 Clickable peak layer** *(UI)*
   - Add a `PeakLayer` component on the base map's `openmaptiles` source, `mountain_peak` source-layer, filtered to `class` `peak` or `volcano` features that have a `name`. Volcanoes are their own class in the tiles, so a `peak`-only filter would hide Rainier, Baker and Hood.
@@ -212,37 +210,50 @@ This phase is frontend-only and uses data the map tiles already contain, so it d
   *Verify*: a Vitest test covers the selection logic. By hand, check that clicking a peak updates the sidebar and that the map resizes correctly next to it. Confirm `peak.selected` appears in Grafana.
 
 - [x] **1.3 Peak panel** *(UI)*
-  - Add `formatFeet(ft)` (FR-010) in `features/peaks/format.ts`. It formats a value already in feet. `formatMiles` waits for 4.4, its first user.
+  - Add `formatFeet(ft)` (FR-010) in `features/peaks/format.ts`. It formats a value already in feet. (`formatMiles` arrived early, in 1.8, for WTA hike lengths; it moves to `utils/` when 4.4 becomes its second user.)
   - A `PeakPanel` in `features/peaks/` shows the peak's name, its elevation from the tiles' `ele_ft` via `formatFeet` (more exact than converting their whole-metre `ele`) ("Elevation unknown" when the tiles have none), and its coordinates as `47.4430° N, 121.3849° W`.
   - When the panel has painted, emit `peak.panel_shown` with `select_to_panel_ms` (time since the click that emitted `peak.selected`) and record the same value in `steer.peak.select_to_panel_ms`. Add SC-006 dashboard panels showing p50/p95 against the under-100-ms target.
 
   *Verify*: Vitest tests for the formatters. Kendall Peak shows 5,781 ft. Easter Island (a small named point near Mount Washington that has no elevation in the tiles) shows "Elevation unknown". Click peaks and confirm `peak.panel_shown` and the SC-006 panels show click-to-panel-render latency in Grafana.
 
-- [ ] **1.4 Washington check**
-  - Add `src/features/peaks/washington.json`, a simplified Washington State outline (roughly 100 points) made from the public-domain US Census cartographic boundary files.
-  - `isInWashington(lon, lat)` does a point-in-polygon test against it (e.g. `@turf/boolean-point-in-polygon`), after a quick bounding-box check first.
+- [x] **1.4 Washington check**
+  - Add `src/features/peaks/washington.json`, a Washington State outline made from the public-domain US Census cartographic boundary file (`cb_2024_us_state_500k`), simplified with mapshaper to a 1 km tolerance with islands under 20 km² dropped (672 points, 13 KB). A roughly 100-point outline drifts several km along the Columbia River, which would misplace peaks in the Gorge.
+  - `isInWashington(lon, lat)` does a quick bounding-box check, then an even-odd point-in-polygon test against it. It is a few lines, so no geometry library is added.
 
-  *Verify*: Vitest tests. Inside: Snoqualmie peaks, Rainier, Mount Olympus, Steptoe Butte. Outside: Mount Hood, Mount Defiance in Oregon, Scotchman Peak (Idaho), Mount Slesse (BC).
+  *Verify*: Vitest tests. Inside: Snoqualmie peaks, Rainier, Mount Baker, Mount Olympus, Steptoe Butte, Mount Constitution (Orcas Island), and Dog and Hamilton Mountains in the Columbia Gorge. Outside: Mount Hood, Mount Defiance in Oregon, Scotchman and Hamilton Mountain in Idaho, Slesse Mountain (BC).
 
-- [ ] **1.5 Search links**
-  `peakLinks(peak)` returns links for **SummitPost** (peak pages) and **WTA** (hikes) for peaks in Washington, and no links for peaks outside it. Confirm each site's current search URL format in this chunk.
+- [x] **1.5 Search links**
+  `peakLinks(peak)` in `features/peaks/peakLinks.ts` returns search links for **SummitPost** (peak pages), **Peakbagger** (peaks) and **WTA** (hikes) for peaks in Washington, and no links for peaks outside it. The URL formats, checked against captured searches on each site: SummitPost `object_list.php?object_type=1&object_name_1=<name>`, Peakbagger `search.aspx?tid=M&ss=<name>`, WTA `go-outside/hikes/hike_search?title=<name>`.
   *Verify*: Vitest tests check that the URLs are encoded correctly and that links are left out for peaks outside Washington.
 
-- [ ] **1.6 Curated exact links**
-  - Add `src/features/peaks/peakLinks.ts`: exact SummitPost and WTA pages for the peaks in the 0.3 table.
-  - Match entries by peak name plus a small distance check, so a different peak with the same name doesn't pick up the wrong links (e.g. Mount Defiance in Oregon).
-  - Curated links take priority over search links, one site at a time.
+- [x] **1.6 Link indexes**
+  - `web/scripts/fetch-peak-links.ts` (`npm run peak-links [summitpost|peakbagger|wta]`) is a one-time harvest that writes `summitpost.json`, `peakbagger.json` and `wta.json` in `features/peaks/data/`. Each entry is only `{name, url, lon, lat}`. Steer never runs it.
+  - **SummitPost** refuses automated clients, so its pages come from the **Wayback Machine**: Washington's named peaks from OpenStreetMap, slug variants of each name looked up in the Wayback index, and each candidate's archived page read for its type and coordinates. Mountain/Rock pages in Washington's bounding box are kept, plus Wikidata's SummitPost IDs (P3309).
+  - **Peakbagger**'s terms forbid copying or scraping its data, so its pages come only from **Wikidata**'s Peakbagger IDs (P3109, CC0).
+  - **WTA** hikes come from the one GeoJSON file behind WTA's hike map (`@@hike-finder-webservice/trailheads`), a single request. Each hike's location is its **trailhead**, not a summit. Hikes also keep their length (`lengthMi`) and gain (`gainFt`) when WTA has them.
+  - Wikidata items are limited to mountains, summits, volcanoes and hills, so parks and wilderness areas with the same ID property are left out.
 
-  *Verify*: a Vitest test checks the priority order. By hand, open each curated link and check that it goes to the right page.
+  *Verify*: 763 SummitPost, 733 Peakbagger and 3,649 WTA entries. Every 0.3 table peak has the right SummitPost page (Mount Defiance near Snoqualmie Pass is `/mount-defiance/151438`; Oregon's is a separate entry at 45.65° N). WTA trailheads match the hike pages' own coordinates (Kendall Katwalk 47.42785, −121.41348).
 
-- [ ] **1.7 Show the links in the peak panel** *(UI)*
-  - Show the links as buttons labelled "SummitPost" and "WTA hikes". Each opens in a new tab with `rel="noopener noreferrer"`.
-  - Search links are marked as searches, so it's clear they aren't exact pages.
+- [x] **1.7 Exact links from the indexes**
+  - Load the three indexes with a dynamic `import()` the first time a Washington peak is selected, so they (about 130 KB gzipped, mostly WTA) stay out of the main bundle.
+  - **SummitPost and Peakbagger**: a peak gets an entry's exact page when the entry is within 1.5 km and its name matches after normalizing case, accents, punctuation, Mount/Mt and Saint/St. This keeps a different peak with the same name from picking up the wrong link (e.g. Mount Defiance in Oregon).
+  - **WTA**: hikes are matched by name and trailhead distance, since a hike rarely has the peak's exact name ("Kendall Katwalk" and "Kendall Peak Lakes" for Kendall Peak). A hike within 10 km matches when its name contains the peak's full name anywhere ("Thompson Lake via Mount Defiance"), or starts with the name without Mount/Peak/Mountain ("Kendall Katwalk"). Matching only a name's start keeps "PCT Section J - Snoqualmie Pass…" off Snoqualmie Mountain. Up to 3 hikes are shown: one named exactly after the peak first, then those containing its full name, then the rest, nearest first within each.
+  - Names with two parts split by a slash, such as the tiles' "Mount Si / q̓əlbc̓", match on each part, and searches use the first. The harvest script splits them the same way.
+  - Exact links take priority over search links, one site at a time.
+  - Add `in_washington` and `has_exact_links` to `peak.selected`.
+
+  *Verify*: Vitest tests check the matching rules and the priority order, including Mount Defiance near Snoqualmie Pass versus Oregon. By hand, open the exact links for each 0.3 table peak and check that they go to the right pages. Confirm the new `peak.selected` attributes in Grafana.
+
+- [x] **1.8 Show the links in the peak panel** *(UI)*
+  - A `PeakLinkList` in `features/peaks/` shows the links under one divider in the peak panel: rows for "SummitPost", "Peakbagger" and "WTA hikes", each with a site icon, and the matched hikes as small cards under "WTA hikes" showing each hike's length and gain (`formatMiles`, `formatFeet`). Each opens in a new tab with `rel="noopener noreferrer"`, and says so to screen readers.
+  - Each row's right-hand icon marks its kind: an external-page mark for an exact page, a magnifier for a search.
   - Peaks outside Washington show "Links are available for Washington peaks only" in place of the buttons.
+  - Emit `peak.link_opened` when a link is clicked.
 
-  *Verify*: click a Snoqualmie peak and check the exact pages open. Click other Washington peaks (e.g. Mount Baker, Mount Olympus) and check the search links open. Click Mount Hood and check it shows name and elevation with the notice.
+  *Verify*: click a Snoqualmie peak and check the exact pages open. Click other Washington peaks (e.g. Mount Baker, Mount Olympus) and check their exact or search links open. Click Mount Hood and check it shows name and elevation with the notice. Confirm `peak.link_opened` in Grafana.
 
-**Milestone 1**: US6 is done. Clicking a peak shows its details, with SummitPost and WTA links for Washington peaks.
+**Milestone 1**: US6 is done. Clicking a peak shows its details, with SummitPost, Peakbagger and WTA links for Washington peaks.
 
 ---
 
@@ -553,11 +564,11 @@ This phase is frontend-only and uses data the map tiles already contain, so it d
 | FR-010 Imperial units | 1.3, 4.4 |
 | FR-011 Worldwide | 6.2, 10.1, 10.2 |
 | FR-012 Routing engine | 6.1–6.4 |
-| FR-013 Peak links | 1.1–1.7 |
+| FR-013 Peak links | 1.1–1.8 |
 | SC-001 Leg in under 1 s | 6.4, 7.3 |
 | SC-002 Save in under 2 min | 8.6 |
 | SC-003 Selected route drawn with no visible delay | 4.3 |
 | SC-004 Identical after reload | 8.6 |
 | SC-005 Trails before roads | 6.3 |
-| SC-006 Peak details render in under 100 ms at p95 and curated links are correct | 1.2, 1.3, 1.6, 1.7 |
+| SC-006 Peak details render in under 100 ms at p95 and exact links are correct | 1.2, 1.3, 1.6, 1.7, 1.8 |
 | FR-014 Telemetry | 0.7–0.11, 2.5–2.7, plus every feature chunk (see "Telemetry conventions") |

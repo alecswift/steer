@@ -1,4 +1,6 @@
-/* Peak details stay quiet: route stats are the one bold element (see web/DESIGN.md). */
+/* The peak's details, in three steps of emphasis: the name with the map's
+   peak mark, the elevation as the panel's one large figure, then the
+   coordinates in muted text (see web/DESIGN.md). */
 .peak-panel-header {
   display: flex;
   align-items: flex-start;
@@ -7,11 +9,21 @@
 }
 
 .peak-panel-title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
   margin: 0;
   font-size: var(--text-xl);
-  font-weight: var(--weight-heavy);
+  font-weight: var(--weight-semibold);
   line-height: var(--leading-tight);
   overflow-wrap: anywhere;
+}
+
+/* The same summit triangle as on the map, in the accent colour. */
+.peak-panel-mark {
+  flex: none;
+  color: var(--color-primary);
+  transform: translateY(1px);
 }
 
 .peak-panel-close {
@@ -24,7 +36,7 @@
   margin: calc(-1 * var(--space-1)) calc(-1 * var(--space-2)) 0 0;
   padding: 0;
   border: 0;
-  border-radius: var(--radius-md);
+  border-radius: 50%;
   background: transparent;
   color: var(--color-text-muted);
   cursor: pointer;
@@ -41,19 +53,29 @@
 }
 
 .peak-panel-elevation {
-  margin: var(--space-2) 0 0;
+  margin: var(--space-4) 0 0;
+  line-height: 1;
+}
+
+.peak-panel-elevation-value {
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-heavy);
+  letter-spacing: -0.02em;
+}
+
+.peak-panel-elevation-unit {
   font-size: var(--text-lg);
   font-weight: var(--weight-semibold);
-  line-height: var(--leading-tight);
+  color: var(--color-text-muted);
 }
 
 .peak-panel-elevation--unknown {
-  font-weight: var(--weight-regular);
+  font-size: var(--text-lg);
   color: var(--color-text-muted);
 }
 
 .peak-panel-coordinates {
-  margin: var(--space-1) 0 0;
+  margin: var(--space-2) 0 0;
   font-size: var(--text-sm);
   color: var(--color-text-muted);
 }
