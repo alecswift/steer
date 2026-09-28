@@ -267,7 +267,7 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
   `GET /api/health` runs `SELECT 1` and returns `{"status":"ok"}` (503 with `{"status":"error"}` when the database is unreachable), with a controller test. The query gives the health check's trace a database span for 2.5.
   *Verify*: `mix test`, and `curl localhost:4000/api/health` works.
 
-- [ ] **2.3 PostGIS and `geo_postgis`**
+- [x] **2.3 PostGIS and `geo_postgis`**
   Add `geo_postgis`, a migration that enables the `postgis` extension, and a custom Postgrex types module.
   *Verify*: `mix ecto.migrate` succeeds, and `mix test` still passes.
 

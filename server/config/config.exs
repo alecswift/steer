@@ -11,6 +11,9 @@ config :steer,
   ecto_repos: [Steer.Repo],
   generators: [timestamp_type: :utc_datetime, binary_id: true]
 
+# PostGIS geometry types (see lib/steer/postgres_types.ex).
+config :steer, Steer.Repo, types: Steer.PostgresTypes
+
 # Configure the endpoint
 config :steer, SteerWeb.Endpoint,
   url: [host: "localhost"],
