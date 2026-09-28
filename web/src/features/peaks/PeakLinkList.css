@@ -1,0 +1,149 @@
+/* Links out of Steer, under one divider that marks where the panel stops
+   describing the peak and starts pointing elsewhere. Site icons carry the
+   panel's one accent colour, so the rows read as things to act on. */
+.peak-links {
+  margin-top: var(--space-5);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+/* Holds the space while the link indexes load, so the panel doesn't jump. */
+.peak-links[aria-busy='true'] {
+  min-height: 8rem;
+}
+
+.peak-links-note {
+  margin-bottom: 0;
+  padding-top: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.peak-links-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Rows pull out by their own padding, so their text lines up with the
+   panel's while the hover background still has room. */
+.peak-links-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0 calc(-1 * var(--space-3));
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  color: var(--color-text);
+  text-decoration: none;
+  transition: background-color 120ms ease-out;
+}
+
+.peak-links-row:hover {
+  background: var(--color-surface);
+}
+
+.peak-links-row:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}
+
+.peak-links-site-icon {
+  flex: none;
+  color: var(--color-primary);
+}
+
+.peak-links-label {
+  flex: 1;
+  min-width: 0;
+  font-weight: var(--weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.peak-links-kind {
+  flex: none;
+  color: var(--color-text-muted);
+  transition: color 120ms ease-out;
+}
+
+.peak-links-row:hover .peak-links-kind {
+  color: var(--color-text);
+}
+
+/* "WTA hikes" heads its list of hikes; it isn't a link itself. */
+.peak-links-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) 0 var(--space-1);
+  font-weight: var(--weight-semibold);
+}
+
+/* Hikes are small cards under the group's text (20px icon + gap), so their
+   length and gain can be compared at a glance. */
+.peak-links-hikes {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-1) 0 var(--space-2) calc(20px + var(--space-3));
+}
+
+.peak-links-hike {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-text);
+  text-decoration: none;
+  transition: background-color 120ms ease-out, border-color 120ms ease-out;
+}
+
+.peak-links-hike:hover {
+  background: var(--color-raised);
+  border-color: var(--color-primary);
+}
+
+.peak-links-hike:hover .peak-links-kind {
+  color: var(--color-text);
+}
+
+.peak-links-hike:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.peak-links-hike-name {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-weight: var(--weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.peak-links-hike-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* Read by screen readers only. */
+.peak-links-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .peak-links-row,
+  .peak-links-hike,
+  .peak-links-kind {
+    transition: none;
+  }
+}

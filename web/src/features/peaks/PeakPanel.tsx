@@ -1,6 +1,8 @@
+import { PeakMark } from '@/components/icons'
 import { metrics, track } from '@/telemetry'
 import { formatCoordinates, formatFeet } from './format'
 import type { Peak } from './peak'
+import { PeakLinkList } from './PeakLinkList'
 import { usePaintLatency } from './usePaintLatency'
 import './PeakPanel.css'
 
@@ -19,7 +21,17 @@ type Props = {
   onClose: () => void
 }
 
-/** Shows a selected peak's name, elevation and coordinates, and records how long it took to appear. */
+// The panel's one large figure, like the height on a summit register.
+function ElevationValue({ feet }: { feet: number }) {
+  const { value, unit } = formatFeet(feet)
+  return (
+    <p className="peak-panel-elevation">
+      <span className="peak-panel-elevation-value">{value}</span> <span className="peak-panel-elevation-unit">{unit}</span>
+    </p>
+  )
+}
+
+/** Shows a selected peak's name, elevation, coordinates and links, and records how long it took to appear. */
 export function PeakPanel({ peak, selectedAt, onClose }: Props) {
   // The event carries the same value for the SC-006 panels, because Loki
   // counts every click, while the histogram can miss the first one after a
@@ -33,6 +45,7 @@ export function PeakPanel({ peak, selectedAt, onClose }: Props) {
     <section className="peak-panel" aria-labelledby="peak-panel-title">
       <header className="peak-panel-header">
         <h2 id="peak-panel-title" className="peak-panel-title">
+          <PeakMark className="peak-panel-mark" />
           {peak.name}
         </h2>
         <button
@@ -49,9 +62,10 @@ export function PeakPanel({ peak, selectedAt, onClose }: Props) {
       {peak.elevationFt === null ? (
         <p className="peak-panel-elevation peak-panel-elevation--unknown">Elevation unknown</p>
       ) : (
-        <p className="peak-panel-elevation">{formatFeet(peak.elevationFt)}</p>
+        <ElevationValue feet={peak.elevationFt} />
       )}
       <p className="peak-panel-coordinates">{formatCoordinates(peak.lon, peak.lat)}</p>
+      <PeakLinkList peak={peak} />
     </section>
   )
 }

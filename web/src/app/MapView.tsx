@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import Map, { type MapLayerMouseEvent } from 'react-map-gl/maplibre'
+import Map, { AttributionControl, type MapLayerMouseEvent } from 'react-map-gl/maplibre'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { peakFromFeature, type Peak } from '@/features/peaks/peak'
 import { PeakLayer } from '@/features/peaks/PeakLayer'
@@ -32,6 +32,14 @@ function reportLoaded() {
 
 const interactiveLayerIds = [peakLayerId]
 
+// The sidebar floats over the map's right edge, or its bottom on narrow
+// screens (see Sidebar.css), so the default view is framed in the space
+// beside it. Read once, since it only sets the first view.
+function defaultViewPadding() {
+  const narrow = window.matchMedia('(max-width: 40rem)').matches
+  return narrow ? { top: 24, right: 24, bottom: 140, left: 24 } : { top: 32, right: 416, bottom: 32, left: 32 }
+}
+
 type Props = {
   // `at` is the click's DOM timestamp, on the performance.now() timeline.
   onPeakClick: (peak: Peak, at: number) => void
@@ -55,7 +63,7 @@ export function MapView({ onPeakClick, onEmptyClick }: Props) {
 
   return (
     <Map
-      initialViewState={{ bounds: defaultBounds }}
+      initialViewState={{ bounds: defaultBounds, fitBoundsOptions: { padding: defaultViewPadding() } }}
       style={{ width: '100%', height: '100%' }}
       mapStyle={baseStyleUrl}
       onLoad={reportLoaded}
@@ -64,7 +72,10 @@ export function MapView({ onPeakClick, onEmptyClick }: Props) {
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
       cursor={hovering ? 'pointer' : undefined}
+      attributionControl={false}
     >
+      {/* Bottom-left, clear of the floating sidebar. */}
+      <AttributionControl position="bottom-left" compact />
       <HillshadeLayer />
       <ContourLayer />
       <TrailsLayer />

@@ -1,3 +1,4 @@
+import { PeakMark } from '@/components/icons'
 import { PeakPanel } from '@/features/peaks/PeakPanel'
 import type { SelectedPeak } from './selection'
 import './Sidebar.css'
@@ -15,7 +16,10 @@ export function Sidebar({ selectedPeak, onClosePeak }: Props) {
         {selectedPeak ? (
           <PeakPanel peak={selectedPeak} selectedAt={selectedPeak.selectedAt} onClose={onClosePeak} />
         ) : (
-          <p className="sidebar-empty">Select a peak on the map to see its details.</p>
+          <p className="sidebar-empty">
+            <PeakMark className="sidebar-empty-mark" />
+            Click a peak on the map to see its details.
+          </p>
         )}
       </div>
     </aside>
