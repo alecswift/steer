@@ -70,6 +70,7 @@ async function fetchText(
   }
 }
 
+/** Decode numeric and supported named HTML entities, preserve unknown names, and trim whitespace. */
 export function decodeEntities(text: string): string {
   const named: Record<string, string> = { amp: '&', quot: '"', apos: "'", lt: '<', gt: '>', nbsp: ' ' }
   return text
@@ -171,6 +172,7 @@ type SummitPostCache = {
 const inWashingtonBox = ({ lon, lat }: { lon: number; lat: number }) =>
   lon >= WA_BOX.west && lon <= WA_BOX.east && lat >= WA_BOX.south && lat <= WA_BOX.north
 
+/** Normalize a peak name to a lowercase ASCII slug with hyphen separators and no edge hyphens. */
 export function slugify(name: string): string {
   return name
     .normalize('NFKD')
