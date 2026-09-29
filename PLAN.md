@@ -32,7 +32,7 @@ These were settled while planning and resolve open items in the spec.
 
 ### Open questions (decided in the chunk that needs them)
 
-- **Elevation noise** (chunk 3.4): whether gain/loss needs a small smoothing threshold.
+- ~~**Elevation noise** (chunk 3.4)~~: decided. Gain and loss use a 5 m hysteresis.
 - **BRouter Docker image** (chunk 6.1): build from the upstream repo's Dockerfile or use a community image.
 - **BRouter segment acquisition** (chunk 6.2): download on demand, download the whole world upfront, or a configurable region list.
 - **PNG decoding in Elixir** (chunk 6.5): pick a library to read Terrarium tiles.
@@ -301,11 +301,11 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
 
 ## Phase 3: Data model and routes API
 
-- [ ] **3.1 Users and the implicit default user**
-  A `users` table (id and timestamps only), a seed with one default user, and `Steer.Accounts.default_user/0`.
+- [x] **3.1 Users and the implicit default user**
+  A `users` table (id and timestamps only), and `Steer.Accounts.default_user/0`, which returns the default user (a fixed ID), creating it on first use. The seed calls it so a fresh database has the user.
   *Verify*: an ExUnit test for `default_user/0`.
 
-- [ ] **3.2 Routes table**
+- [x] **3.2 Routes table**
   Migration with the following columns:
   - `id`
   - `user_id` (foreign key)
@@ -322,15 +322,15 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
   `geometry_index` is the vertex in `geometry` where each waypoint lands. It lets edit mode split the line back into legs without re-snapping.
   *Verify*: `mix ecto.migrate` and a rollback both work.
 
-- [ ] **3.3 Route schema and changeset**
-  Validations: at least 2 waypoints, geometry present, and user required.
+- [x] **3.3 Route schema and changeset**
+  Validations: at least 2 waypoints (each with `lon`, `lat` and `geometry_index` in range), geometry present and a `LineStringZ` in SRID 4326 with at least 2 points, user required and existing, and name and stats present (the columns are `NOT NULL`; 3.5 and 3.6 fill them in before the changeset).
   *Verify*: ExUnit changeset tests for valid and invalid cases.
 
-- [ ] **3.4 Stats computation**
-  - `Steer.Routes.Stats`: distance with `ST_Length(geometry::geography)`, and min/max/gain/loss from the Z values.
-  - Decide here whether gain/loss needs a small noise threshold.
+- [x] **3.4 Stats computation**
+  - `Steer.Routes.Stats`: distance with `ST_Length(ST_Force2D(geometry)::geography)`, and min/max/gain/loss from the Z values. `ST_Force2D` is needed because PostGIS measures a geography with Z as 3D slope length, and route distance is map distance.
+  - Gain and loss use a **5 m hysteresis**: a climb or descent counts only once it goes more than 5 m past the last turning point, and then counts in full, so DEM noise on flat ground adds nothing.
 
-  *Verify*: ExUnit tests with fixed lines whose stats are known (flat, climbing, up then down).
+  *Verify*: ExUnit tests with fixed lines whose stats are known (flat, climbing, up then down, and noise within the threshold).
 
 - [ ] **3.5 Assemble a route from legs**
   `Steer.Routes.build/1` takes `waypoints` and `legs` (`[{coordinates: [[lon,lat,z]], snapped: bool}]`) and does the following:
