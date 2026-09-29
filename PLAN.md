@@ -357,8 +357,8 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
 
   *Verify*: controller tests, and `curl` a create and a list.
 
-- [ ] **3.9 Dev seed routes**
-  Two or three hand-made routes around Snoqualmie Pass with Z values (for example Snow Lake, or Bandera to Mason Lake), created in `seeds.exs` through the context.
+- [x] **3.9 Dev seed routes**
+  Three routes around Snoqualmie Pass with Z values, created in `seeds.exs` through the context from `priv/repo/seed_routes.json` (in the `POST /api/routes` shape): Snow Lake and back (a loop), Source Lake then Snow Lake, and Denny Creek to Melakwa Lake with no name, so it gets a generated one. The lines follow OpenStreetMap trails, with Z from AWS Terrain Tiles. They're only added in dev, to a database with no routes, so the seeds stay safe to run again.
   *Verify*: `mix run priv/repo/seeds.exs`, and `curl /api/routes` returns them.
 
 **Milestone 3**: A working routes API with stats and generated names, testable with curl.
