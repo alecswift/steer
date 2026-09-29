@@ -7,6 +7,7 @@
 // always light, so these are tuned against it.
 export const mapColors = {
   route: '#e6532c',
+  routeHalo: '#ffffff',
   trail: '#7b1fa2',
   contourLine: 'rgba(120, 80, 40, 0.6)',
   contourLabel: '#5c3d1f',

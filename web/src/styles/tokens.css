@@ -21,6 +21,7 @@
 
   /* Colour: map. Mirrors mapColors in tokens.ts. */
   --map-route: #e6532c;
+  --map-route-halo: #ffffff;
   --map-trail: #7b1fa2;
   --map-contour-line: rgba(120, 80, 40, 0.6);
   --map-contour-label: #5c3d1f;

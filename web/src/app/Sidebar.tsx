@@ -1,4 +1,4 @@
-import { PeakMark } from '@/components/icons'
+import { PeakMark, PlusIcon } from '@/components/icons'
 import { PeakPanel } from '@/features/peaks/PeakPanel'
 import type { Route } from '@/features/routes/api'
 import { RouteList } from '@/features/routes/RouteList'
@@ -13,17 +13,22 @@ type Props = {
   selectedPeak: SelectedPeak | null
   onSelectRoute: (id: string, at: number) => void
   onClosePeak: () => void
+  onCreateRoute: () => void
 }
 
 /**
- * Lists the saved routes above the details of what's selected: the peak if
+ * Offers Create route, then lists the saved routes above the details of what's selected: the peak if
  * one is selected, otherwise the selected route, otherwise a prompt.
  */
-export function Sidebar({ routes, selectedRoute, selectedPeak, onSelectRoute, onClosePeak }: Props) {
+export function Sidebar({ routes, selectedRoute, selectedPeak, onSelectRoute, onClosePeak, onCreateRoute }: Props) {
   const hasRoutes = routes !== null && 'routes' in routes && routes.routes.length > 0
 
   return (
     <aside className="sidebar" aria-label="Details">
+      <button type="button" className="sidebar-create" onClick={onCreateRoute}>
+        <PlusIcon size={18} />
+        Create route
+      </button>
       <RouteList routes={routes} selectedId={selectedRoute?.id ?? null} onSelect={onSelectRoute} />
       <div className="sidebar-details" aria-live="polite">
         {selectedPeak ? (

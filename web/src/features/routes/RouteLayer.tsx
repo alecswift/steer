@@ -19,6 +19,8 @@ type Props = {
   // When the route was selected, on the performance.now() timeline. A new
   // value frames the route again, even if it's the same route.
   selectedAt: number | null
+  // False hides the route without unmounting it, e.g. in edit mode.
+  visible: boolean
   // Keeps the framed route clear of the floating sidebar.
   padding: PaddingOptions
   // The map layer to draw the route under.
@@ -29,7 +31,7 @@ type Props = {
  * Draws only the selected route. Each time a route is selected, fits the map
  * to it and records how long it took until the map first showed the route.
  */
-export function RouteLayer({ route, selectedAt, padding, beforeId }: Props) {
+export function RouteLayer({ route, selectedAt, visible, padding, beforeId }: Props) {
   const { current: mapRef } = useMap()
 
   const onShown = useEffectEvent((ms: number) => {
@@ -65,7 +67,11 @@ export function RouteLayer({ route, selectedAt, padding, beforeId }: Props) {
 
   return (
     <Source id={routeSourceId} type="geojson" data={route}>
-      <Layer {...routeLayerStyle} beforeId={beforeId} />
+      <Layer
+        {...routeLayerStyle}
+        layout={{ ...routeLayerStyle.layout, visibility: visible ? 'visible' : 'none' }}
+        beforeId={beforeId}
+      />
     </Source>
   )
 }
