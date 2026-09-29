@@ -353,7 +353,7 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
 - [x] **3.8 Routes JSON API**
   - Endpoints: `GET /api/routes` (a GeoJSON FeatureCollection), `GET /api/routes/:id`, `POST`, `PUT`, and `DELETE`.
   - `POST` and `PUT` take `{name?, waypoints: [{lon, lat}], legs}` as `Steer.Routes.build/1` does. Invalid input is a 422 with `{errors: {field: [message]}}`.
-  - Each feature's geometry is a GeoJSON `LineString` with `[lon, lat, z]` positions (written by hand, since `Geo.JSON` writes a non-standard `LineStringZ`), and its properties carry the name, stats, and waypoints.
+  - Each feature's geometry is a GeoJSON `LineString` with `[lon, lat, z]` positions, and its properties carry the name, stats, and waypoints.
 
   *Verify*: controller tests, and `curl` a create and a list.
 

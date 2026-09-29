@@ -32,7 +32,6 @@ defmodule SteerWeb.RouteController do
     with {:ok, route} <- Routes.create_route(user, params) do
       conn
       |> put_status(:created)
-      |> put_resp_header("location", ~p"/api/routes/#{route}")
       |> render(:show, route: route)
     end
   end

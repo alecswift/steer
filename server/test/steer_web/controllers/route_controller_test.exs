@@ -75,7 +75,6 @@ defmodule SteerWeb.RouteControllerTest do
       conn = post(conn, ~p"/api/routes", @params)
 
       assert %{"id" => id, "properties" => %{"name" => "Snow Lake"}} = json_response(conn, 201)
-      assert get_resp_header(conn, "location") == ["/api/routes/#{id}"]
       assert Routes.get_route!(Accounts.default_user(), id)
     end
 
