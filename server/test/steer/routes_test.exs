@@ -1,7 +1,10 @@
 defmodule Steer.RoutesTest do
   use Steer.DataCase, async: true
 
+  alias Steer.Accounts
+  alias Steer.Accounts.User
   alias Steer.Routes
+  alias Steer.Routes.Route
 
   # Waypoints A, B, C along the equator, 0.01° apart, where 0.01° of longitude
   # is 6378137 m × 0.01 × π / 180 ≈ 1113.195 m.
@@ -136,6 +139,110 @@ defmodule Steer.RoutesTest do
         assert {:error, changeset} = Routes.build(%{"waypoints" => [@a, @b], "legs" => [bad]})
         assert %{legs: [^message]} = errors_on(changeset)
       end
+    end
+  end
+
+  describe "CRUD" do
+    setup do
+      %{user: Accounts.default_user()}
+    end
+
+    defp params(name \\ nil) do
+      %{
+        "name" => name,
+        "waypoints" => [@a, @b],
+        "legs" => [leg([[0.0, 0.0, 100], [0.01, 0.0, 150]])]
+      }
+    end
+
+    defp today, do: Calendar.strftime(Date.utc_today(), "%b %-d")
+
+    test "create_route/2 stores the built route with its name", %{user: user} do
+      assert {:ok, %Route{} = route} = Routes.create_route(user, params("Snow Lake"))
+
+      assert route.user_id == user.id
+      assert route.name == "Snow Lake"
+      assert [%{geometry_index: 0}, %{geometry_index: 1}] = route.waypoints
+      assert route.gain_m == 50.0
+      assert Repo.get!(Route, route.id).geometry == route.geometry
+    end
+
+    test "create_route/2 trims the name, and generates one when it's blank", %{user: user} do
+      assert {:ok, %{name: "Snow Lake"}} = Routes.create_route(user, params("  Snow Lake "))
+
+      for blank <- [nil, "", "   "] do
+        assert {:ok, route} = Routes.create_route(user, params(blank))
+        assert route.name =~ ~r/^0\.7 mi route · #{today()}( \(\d\))?$/
+      end
+
+      assert user |> Routes.list_routes() |> Enum.map(& &1.name) |> Enum.uniq() |> length() == 4
+    end
+
+    test "create_route/2 returns build and changeset errors", %{user: user} do
+      assert {:error, changeset} = Routes.create_route(user, Map.delete(params(), "legs"))
+      assert %{legs: [_]} = errors_on(changeset)
+
+      bad_waypoints = Map.put(params(), "waypoints", [@a, %{"lon" => 0.01}])
+      assert {:error, changeset} = Routes.create_route(user, bad_waypoints)
+      assert %{waypoints: [%{}, %{lat: ["can't be blank"]}]} = errors_on(changeset)
+
+      assert {:error, changeset} = Routes.create_route(user, params(42))
+      assert %{name: ["is invalid"]} = errors_on(changeset)
+    end
+
+    test "list_routes/1 returns only the user's routes, newest first", %{user: user} do
+      {:ok, older} = Routes.create_route(user, params("Older"))
+      {:ok, newer} = Routes.create_route(user, params("Newer"))
+      {:ok, _other} = Routes.create_route(Repo.insert!(%User{}), params("Someone else's"))
+
+      Repo.update_all(from(r in Route, where: r.id == ^older.id),
+        set: [inserted_at: ~U[2026-01-01 00:00:00Z]]
+      )
+
+      assert Enum.map(Routes.list_routes(user), & &1.id) == [newer.id, older.id]
+    end
+
+    test "get_route!/2 finds only the user's own routes", %{user: user} do
+      {:ok, route} = Routes.create_route(user, params("Mine"))
+      {:ok, other} = Routes.create_route(Repo.insert!(%User{}), params("Theirs"))
+
+      assert Routes.get_route!(user, route.id).id == route.id
+      assert_raise Ecto.NoResultsError, fn -> Routes.get_route!(user, other.id) end
+    end
+
+    test "update_route/2 rebuilds the route and keeps its generated name", %{user: user} do
+      {:ok, route} = Routes.create_route(user, params())
+
+      longer = %{
+        "waypoints" => [@a, @b, @c],
+        "legs" => [
+          leg([[0.0, 0.0, 100], [0.01, 0.0, 150]]),
+          leg([[0.01, 0.0, 150], [0.02, 0.0, 150]])
+        ]
+      }
+
+      assert {:ok, updated} = Routes.update_route(route, longer)
+      assert updated.id == route.id
+      assert updated.name == "1.4 mi route · #{today()}"
+      assert length(updated.geometry.coordinates) == 3
+
+      # Saving it again without a name doesn't count its own name as taken.
+      assert {:ok, %{name: name}} = Routes.update_route(updated, longer)
+      assert name == updated.name
+    end
+
+    test "update_route/2 returns errors and leaves the route as it was", %{user: user} do
+      {:ok, route} = Routes.create_route(user, params("Snow Lake"))
+
+      assert {:error, _changeset} = Routes.update_route(route, Map.delete(params(), "legs"))
+      assert Repo.get!(Route, route.id).name == "Snow Lake"
+    end
+
+    test "delete_route/1 removes the route", %{user: user} do
+      {:ok, route} = Routes.create_route(user, params("Snow Lake"))
+
+      assert {:ok, _route} = Routes.delete_route(route)
+      assert Routes.list_routes(user) == []
     end
   end
 end

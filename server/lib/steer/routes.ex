@@ -1,11 +1,76 @@
 defmodule Steer.Routes do
   @moduledoc """
-  Routes: assembling a route from the editor's legs, and storing it.
+  Routes: assembling a route from the editor's legs, and storing it. Every
+  route belongs to a user, and each function here works within one user's
+  routes.
   """
+
+  import Ecto.Query
 
   require OpenTelemetry.Tracer, as: Tracer
 
-  alias Steer.Routes.{Route, Stats}
+  alias Steer.Accounts.User
+  alias Steer.Repo
+  alias Steer.Routes.{Name, Route, Stats}
+
+  @doc """
+  Returns the user's routes, newest first.
+  """
+  def list_routes(%User{id: user_id}) do
+    Repo.all(
+      from r in Route,
+        where: r.user_id == ^user_id,
+        order_by: [desc: r.inserted_at, asc: r.name]
+    )
+  end
+
+  @doc """
+  Returns the user's route with this ID. Raises `Ecto.NoResultsError` when it
+  doesn't exist or belongs to another user.
+  """
+  def get_route!(%User{id: user_id}, id), do: Repo.get_by!(Route, id: id, user_id: user_id)
+
+  @doc """
+  Creates a route for the user from `params` with string keys: `"waypoints"`
+  and `"legs"` as `build/1` takes them, and an optional `"name"`. A blank name
+  gets a generated one (see `Steer.Routes.Name`).
+  """
+  def create_route(%User{id: user_id}, params) do
+    with {:ok, attrs} <- build(params) do
+      %Route{user_id: user_id}
+      |> Route.changeset(Map.put(attrs, :name, name(params, user_id, attrs, nil)))
+      |> Repo.insert()
+    end
+  end
+
+  @doc """
+  Replaces a route's waypoints, line, stats and name from `params`, as in
+  `create_route/2`. Fetch the route with `get_route!/2` first, so it's scoped
+  to the user.
+  """
+  def update_route(%Route{} = route, params) do
+    with {:ok, attrs} <- build(params) do
+      route
+      |> Route.changeset(Map.put(attrs, :name, name(params, route.user_id, attrs, route.id)))
+      |> Repo.update()
+    end
+  end
+
+  @doc """
+  Deletes a route fetched with `get_route!/2`.
+  """
+  def delete_route(%Route{} = route), do: Repo.delete(route)
+
+  # The given name, trimmed, or a generated one when it's blank. Anything that
+  # isn't a string is passed on for the changeset to reject.
+  defp name(params, user_id, attrs, except_id) do
+    name = params["name"]
+    name = if is_binary(name), do: String.trim(name), else: name
+
+    if name in [nil, ""],
+      do: Name.generate(user_id, attrs, Date.utc_today(), except_id),
+      else: name
+  end
 
   @doc """
   Assembles a route's attributes from the editor's waypoints and legs, both
