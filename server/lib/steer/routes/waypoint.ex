@@ -15,6 +15,12 @@ defmodule Steer.Routes.Waypoint do
     field :geometry_index, :integer
   end
 
+  @doc """
+  Casts and validates a waypoint's required longitude, latitude and geometry index.
+
+  Longitude must be between -180 and 180, latitude between -90 and 90
+  (inclusive), and the geometry index must be non-negative.
+  """
   def changeset(waypoint, attrs) do
     waypoint
     |> cast(attrs, [:lon, :lat, :geometry_index])

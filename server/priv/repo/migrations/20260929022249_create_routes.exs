@@ -1,6 +1,11 @@
 defmodule Steer.Repo.Migrations.CreateRoutes do
   use Ecto.Migration
 
+  @doc """
+  Creates the routes table with an owner, waypoints, 3D geometry and metric stats.
+
+  Indexes the owner reference and deletes routes when their owner is deleted.
+  """
   def change do
     create table(:routes, primary_key: false) do
       add :id, :binary_id, primary_key: true
