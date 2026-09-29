@@ -32,7 +32,6 @@ These were settled while planning and resolve open items in the spec.
 
 ### Open questions (decided in the chunk that needs them)
 
-- **Phoenix metrics export** (chunk 2.7): the OpenTelemetry metrics SDK for Erlang and Elixir is still experimental. Choose between it and PromEx exposing `/metrics` for Prometheus to scrape.
 - **Elevation noise** (chunk 3.4): whether gain/loss needs a small smoothing threshold.
 - **BRouter Docker image** (chunk 6.1): build from the upstream repo's Dockerfile or use a community image.
 - **BRouter segment acquisition** (chunk 6.2): download on demand, download the whole world upfront, or a configurable region list.
@@ -259,39 +258,39 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
 
 ## Phase 2: Backend skeleton
 
-- [ ] **2.1 Generate the Phoenix API app**
+- [x] **2.1 Generate the Phoenix API app**
   `mix phx.new server --app steer --no-html --no-assets --no-live --no-mailer --no-dashboard --no-gettext --binary-id`. Point the dev and test database config at the Compose database.
   *Verify*: `mix ecto.create` and `mix test` pass.
 
-- [ ] **2.2 Health endpoint**
-  `GET /api/health` returns `{"status":"ok"}`, with a controller test.
+- [x] **2.2 Health endpoint**
+  `GET /api/health` runs `SELECT 1` and returns `{"status":"ok"}` (503 with `{"status":"error"}` when the database is unreachable), with a controller test. The query gives the health check's trace a database span for 2.5.
   *Verify*: `mix test`, and `curl localhost:4000/api/health` works.
 
-- [ ] **2.3 PostGIS and `geo_postgis`**
+- [x] **2.3 PostGIS and `geo_postgis`**
   Add `geo_postgis`, a migration that enables the `postgis` extension, and a custom Postgrex types module.
   *Verify*: `mix ecto.migrate` succeeds, and `mix test` still passes.
 
-- [ ] **2.4 Vite proxy to Phoenix**
+- [x] **2.4 Vite proxy to Phoenix**
   In `vite.config.ts`, proxy `/api` to `localhost:4000` so no CORS setup is needed. Temporarily log `/api/health` from the app.
   *Verify*: the browser console shows the health response. Remove the log afterwards.
 
-- [ ] **2.5 Phoenix tracing**
+- [x] **2.5 Phoenix tracing**
   - Add `opentelemetry`, `opentelemetry_exporter`, `opentelemetry_phoenix`, `opentelemetry_bandit` and `opentelemetry_ecto`.
   - Export over OTLP to the `telemetry` container, with `service.name=steer-backend`.
   - Incoming `traceparent` headers continue the browser's trace.
 
   *Verify*: calling `/api/health` from the app shows **one trace** in Tempo that runs from `steer-frontend` into `steer-backend`.
 
-- [ ] **2.6 Structured JSON logs**
-  - Add `LoggerJSON` (or a similar library) so Phoenix logs are JSON and carry the trace and span IDs.
-  - Send them to Loki through the collector (the OTLP log exporter, or collecting from stdout; decide in this chunk).
+- [x] **2.6 Structured JSON logs**
+  - Add `LoggerJSON` so Phoenix's console logs are JSON. A `:logger` primary filter in `Steer.Telemetry` adds the active span's trace and span IDs to every log.
+  - Send them to Loki with the **OTLP log exporter**: `opentelemetry_experimental`'s `otel_log_handler`, set up in dev config. Collecting stdout was ruled out because Phoenix runs natively, outside the container. The handler only sends `info` and above, because Ecto's `debug` query logs include parameters, which will hold route coordinates.
   - Add a `Steer.Telemetry.event/2` helper for backend product events with the same `event.name` shape as the frontend's `track`.
 
   *Verify*: an ExUnit test for `event/2`. In Grafana, the `/api/health` log line opens its trace in Tempo.
 
-- [ ] **2.7 Phoenix metrics**
-  - Export Phoenix, Ecto and BEAM VM metrics: request rate and duration by route, database query time, and memory.
-  - Choose the exporter here (see "Open questions").
+- [x] **2.7 Phoenix metrics**
+  - Export Phoenix, Ecto and BEAM VM metrics from `Steer.Telemetry.Metrics`: request rate and duration by route (`steer.http.request.duration_ms`), database query time (`steer.db.query.duration_ms`), and memory (`steer.vm.memory_bytes`). It replaces the generated `SteerWeb.Telemetry`, whose metric definitions had no reporter.
+  - The exporter is the **OpenTelemetry metrics SDK** (`opentelemetry_experimental`, already used for logs) pushing over OTLP, rather than PromEx: it matches the browser, and Prometheus needs no scrape config. The reader is set to cumulative temporality, since Prometheus drops the SDK's default delta sums and histograms. Prometheus also rejects a whole push that has a metric with no data points, so histograms are created on their first recording, and backend counters (such as `steer.events` for `event/2`) should be too.
   - Add a backend row to the Steer dashboard.
 
   *Verify*: request rate and duration for `/api/health` appear in Prometheus and on the dashboard.

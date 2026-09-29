@@ -1,7 +1,7 @@
 {
   "uid": "steer",
   "title": "Steer",
-  "description": "Steer product events, frontend errors and success criteria. Counts and timings come from Loki event records, which are exact per event; browser counters in Prometheus miss the first increment of each page load.",
+  "description": "Steer product events, frontend errors and success criteria, plus backend request, query and memory metrics. Event counts and timings come from Loki event records, which are exact per event; browser counters in Prometheus miss the first increment of each page load.",
   "tags": ["steer"],
   "timezone": "browser",
   "schemaVersion": 41,
@@ -244,6 +244,110 @@
         "dedupStrategy": "none",
         "sortOrder": "Descending"
       }
+    },
+    {
+      "id": 8,
+      "type": "row",
+      "title": "Backend (steer-backend)",
+      "collapsed": false,
+      "gridPos": { "x": 0, "y": 30, "w": 24, "h": 1 },
+      "panels": []
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Request rate by route",
+      "description": "Phoenix requests per second, by route and status. Requests that match no route aren't counted.",
+      "gridPos": { "x": 0, "y": 31, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (http_route, http_response_status_code) (rate(steer_http_request_duration_ms_count{service_name=\"steer-backend\"}[$__rate_interval]))",
+          "legendFormat": "{{http_route}} {{http_response_status_code}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "custom": { "showPoints": "never", "spanNulls": true } },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Request duration by route",
+      "description": "p50 and p95 Phoenix request duration, by route.",
+      "gridPos": { "x": 12, "y": 31, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.5, sum by (le, http_route) (rate(steer_http_request_duration_ms_bucket{service_name=\"steer-backend\"}[$__rate_interval])))",
+          "legendFormat": "p50 {{http_route}}"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, sum by (le, http_route) (rate(steer_http_request_duration_ms_bucket{service_name=\"steer-backend\"}[$__rate_interval])))",
+          "legendFormat": "p95 {{http_route}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "custom": { "showPoints": "never", "spanNulls": true } },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Database query time",
+      "description": "p50 and p95 Ecto query total time (queue, query and decode), by source table. Raw SQL, such as the health check's SELECT 1, has no table.",
+      "gridPos": { "x": 0, "y": 39, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "label_replace(histogram_quantile(0.5, sum by (le, source) (rate(steer_db_query_duration_ms_bucket{service_name=\"steer-backend\"}[$__rate_interval]))), \"source\", \"(no table)\", \"source\", \"\")",
+          "legendFormat": "p50 {{source}}"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "label_replace(histogram_quantile(0.95, sum by (le, source) (rate(steer_db_query_duration_ms_bucket{service_name=\"steer-backend\"}[$__rate_interval]))), \"source\", \"(no table)\", \"source\", \"\")",
+          "legendFormat": "p95 {{source}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "custom": { "showPoints": "never", "spanNulls": true } },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "BEAM memory",
+      "description": "Memory the Phoenix VM uses, by kind.",
+      "gridPos": { "x": 12, "y": 39, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (kind) (steer_vm_memory_bytes{service_name=\"steer-backend\"})",
+          "legendFormat": "{{kind}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "bytes", "custom": { "showPoints": "never", "spanNulls": true } },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
     }
   ]
 }

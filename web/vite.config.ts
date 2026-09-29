@@ -13,6 +13,8 @@ export default defineConfig({
     open: true,        // auto-open browser on start
     strictPort: true,  // fail instead of auto-incrementing if port is taken
     proxy: {
+      // The Phoenix API, proxied so it's same-origin and needs no CORS setup.
+      '/api': 'http://localhost:4000',
       // Browser telemetry goes to the collector's OTLP HTTP port through the
       // dev server, so requests are same-origin and need no CORS setup.
       '/otlp': {
