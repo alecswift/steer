@@ -62,6 +62,7 @@ These were settled while planning and resolve open items in the spec.
 | Frontend errors | error log | message, stack trace, component | 0.9 |
 | HTTP requests | Phoenix spans + metrics | route, status, duration | 2.5, 2.7 |
 | Database queries | Ecto spans | query source, duration | 2.5 |
+| `steer.routes.build` | span | `leg_count`, `straight_leg_count`, `point_count`, `distance_m` | 3.5 |
 | `peak.selected` | event | `peak_name` (1.2); `in_washington`, `has_exact_links` (1.7) | 1.2, 1.7 |
 | `peak.panel_shown` | event + histogram (`steer.peak.select_to_panel_ms`) | `peak_name`, `select_to_panel_ms`: from the `peak.selected` click until the peak details panel has painted. The **SC-006** panels (p95 under 100 ms) read the event from Loki, which counts every click; the histogram can miss the first click after a page load | 1.3 |
 | `peak.link_opened` | event | `site` (summitpost / peakbagger / wta), `link_type` (exact / search) | 1.8 |
@@ -332,13 +333,14 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
 
   *Verify*: ExUnit tests with fixed lines whose stats are known (flat, climbing, up then down, and noise within the threshold).
 
-- [ ] **3.5 Assemble a route from legs**
+- [x] **3.5 Assemble a route from legs**
   `Steer.Routes.build/1` takes `waypoints` and `legs` (`[{coordinates: [[lon,lat,z]], snapped: bool}]`) and does the following:
   - joins the legs into one line, removing duplicate joint vertices
   - computes each waypoint's `geometry_index`
   - computes the stats
+  - records a `steer.routes.build` span with the leg, straight leg and point counts and the distance
 
-  *Verify*: ExUnit tests covering 2 legs, 3 legs, and a closed loop.
+  *Verify*: ExUnit tests covering 2 legs, 3 legs, and a closed loop, and the span in Tempo.
 
 - [ ] **3.6 Auto-generated names**
   If the name is blank, generate `"{distance} mi {loop|route} · {Mon D}"`. It's a loop when the first and last waypoint are the same. Add ` (n)` when the name already exists for that user.
