@@ -2,10 +2,7 @@
 #
 #     mix run priv/repo/seeds.exs
 #
-# Inside the script, you can read and write to any of your
-# repositories directly:
-#
-#     Steer.Repo.insert!(%Steer.SomeSchema{})
-#
-# We recommend using the bang functions (`insert!`, `update!`
-# and so on) as they will fail if something goes wrong.
+# It is safe to run more than once.
+
+# The implicit default user that owns every route.
+Steer.Accounts.default_user()
