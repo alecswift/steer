@@ -5,7 +5,7 @@ import { isInWashington } from '@/features/peaks/washington'
 import { track } from '@/telemetry'
 import { initialSelection, selectionReducer } from './selection'
 
-/** App-level selection state, with stable callbacks to select or clear a peak and the selection telemetry. */
+/** App-level selection state, with stable callbacks to select or clear a peak or select a route, and the selection telemetry. */
 export function useSelection() {
   const [selection, dispatch] = useReducer(selectionReducer, initialSelection)
 
@@ -24,5 +24,11 @@ export function useSelection() {
   }, [])
   const clearPeak = useCallback(() => dispatch({ type: 'peakCleared' }), [])
 
-  return { selection, selectPeak, clearPeak }
+  // `at` is the click's DOM timestamp, for the select-to-fit latency.
+  const selectRoute = useCallback((id: string, at: number) => {
+    dispatch({ type: 'routeSelected', id, at })
+    track('route.selected', { route_id: id })
+  }, [])
+
+  return { selection, selectPeak, clearPeak, selectRoute }
 }

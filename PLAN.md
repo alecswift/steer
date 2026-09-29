@@ -67,6 +67,7 @@ These were settled while planning and resolve open items in the spec.
 | `peak.panel_shown` | event + histogram (`steer.peak.select_to_panel_ms`) | `peak_name`, `select_to_panel_ms`: from the `peak.selected` click until the peak details panel has painted. The **SC-006** panels (p95 under 100 ms) read the event from Loki, which counts every click; the histogram can miss the first click after a page load | 1.3 |
 | `peak.link_opened` | event | `site` (summitpost / peakbagger / wta), `link_type` (exact / search) | 1.8 |
 | `route.selected` | event | `route_id` | 4.3 |
+| `route.shown` | event | `route_id`, `select_to_fit_ms`: from the `route.selected` click until the map first shows the route and starts framing it. The **SC-003** panels (p95 under 100 ms) read it from Loki, like SC-006 | 4.3 |
 | `editor.opened` | event | `mode` (new / existing) | 5.1, 9.2 |
 | `editor.point_added`, `editor.undo`, `editor.redo`, `editor.cleared`, `editor.loop_closed` | events | `point_count` | 5.3, 5.4 |
 | BRouter call | span | status, `no_route`, duration | 6.4 |
@@ -79,7 +80,7 @@ These were settled while planning and resolve open items in the spec.
 | `route.save_failed` | error event | `reason` | 8.3 |
 | `editor.discard_prompted`, `editor.discarded` | events | `trigger` (cancel / beforeunload) | 8.4, 8.5 |
 | `route.deleted` | event | `route_id` | 9.1 |
-| `steer.route.select_to_fit_ms` | histogram | **SC-003** panel | 4.3 |
+| `steer.route.select_to_fit_ms` | histogram | the same value as `route.shown`'s `select_to_fit_ms`, for **SC-003** | 4.3 |
 
 ---
 
@@ -203,7 +204,7 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
 
 - [x] **1.2 Sidebar shell and selection** *(UI)*
   - A right-hand `Sidebar` next to the map, with an empty state ("Select a peak").
-  - App-level selection state with two independent parts: `selectedPeak` (set here) and `selectedRouteId` (added in Phase 4). Choosing a peak doesn't clear the route, and choosing a route doesn't clear the peak.
+  - App-level selection state with two independent parts: `selectedPeak` (set here) and `selectedRoute` (added in 4.3). Choosing a peak doesn't clear the route. Choosing a route does clear the peak (see 4.3), so the sidebar shows the route just chosen.
   - The sidebar panel shows the peak while one is selected, and a close button on the panel clears it.
   - Clicking a peak selects it and emits `peak.selected`, recording the click time for the latency histogram in 1.3. Clicking empty map clears the peak only.
 
@@ -367,25 +368,26 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
 
 ## Phase 4: View mode (US1, US4)
 
-- [ ] **4.1 API client and types**
-  `src/features/routes/api.ts` with typed `listRoutes`, `getRoute`, `createRoute`, `updateRoute`, and `deleteRoute`.
-  *Verify*: a Vitest test with mocked `fetch` checks the URLs and parsing.
+- [x] **4.1 API client and types**
+  `src/features/routes/api.ts` with the route types and a typed `listRoutes`, the only call view mode makes: the list carries each route in full, so no `getRoute` is needed. `createRoute`, `deleteRoute` and `updateRoute` are added by their first users (8.3, 9.1 and 9.3).
+  *Verify*: a Vitest test with mocked `fetch` checks the URL and parsing.
 
-- [ ] **4.2 Route list in the sidebar** *(UI)*
-  The sidebar from 1.2 lists the saved route names above the selection panel, with an empty state when there are none.
+- [x] **4.2 Route list in the sidebar** *(UI)*
+  The sidebar from 1.2 lists the saved route names and distances above the selection panel, with an empty state when there are none and a message when the list can't be loaded (also logged as an error).
   *Verify*: the seeded routes are listed, and selecting a peak still works.
 
-- [ ] **4.3 Select a route and draw only that route** *(UI)*
-  - Add `selectedRouteId` to the selection state.
-  - `RouteLayer` is passed the selected route and draws **only that route**. With no route selected, no route is drawn.
-  - Clicking a route in the list draws it and fits the map to its bounds (`fitBounds` with padding). Clicking another route switches to it.
+- [x] **4.3 Select a route and draw only that route** *(UI)*
+  - Add `selectedRoute` to the selection state: the route's ID and when it was clicked, like `selectedPeak`, for the SC-003 latency.
+  - `RouteLayer` is passed the selected route and draws **only that route**, under the peaks. With no route selected, no route is drawn.
+  - Clicking a route in the list draws it and fits the map to its bounds (`fitBounds` with padding that keeps it clear of the sidebar, or of the bottom sheet on narrow screens). Clicking another route switches to it, and clicking the same one again frames it again.
+  - Telemetry: `route.selected` on the click, then `route.shown` and `steer.route.select_to_fit_ms` once the map first shows the route, with SC-003 dashboard panels (p95 under 100 ms).
   - **The route stays drawn while you look at a peak.** Selecting a peak shows the peak panel in the sidebar and leaves the route alone. Closing the peak panel (or clicking empty map) brings back the route's stats.
   - Selecting a route from the list clears any selected peak, so the sidebar shows the route you just chose.
 
   *Verify*: the Vitest selection tests are extended. On load, no route is drawn. Clicking each seeded route draws only that one and frames it. With a route selected, clicking a peak shows the peak panel and the route stays on the map. Closing the peak panel shows the route's stats again.
 
-- [ ] **4.4 Route stats panel** *(UI)*
-  The selected route shows distance (mi), min/max elevation (ft), and gain/loss (ft), using `formatFeet` from 1.3 (after converting the API's metres to feet) and a new `formatMiles`. With routes as a second user, both move to `utils/format.ts`.
+- [x] **4.4 Route stats panel** *(UI)*
+  The selected route shows distance (mi), min/max elevation (ft), and gain/loss (ft), using `formatFeet` from 1.3 and `formatMiles` from 1.8 after converting the API's metres. With routes as a second user, both move to `utils/format.ts`.
   *Verify*: the numbers match the API response after conversion.
 
 **Milestone 4**: US1 and US4 are done. You can browse the seeded routes, and each one is drawn when you select it.
@@ -491,7 +493,7 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
   *Verify*: an ExUnit test.
 
 - [ ] **8.3 Save dialog** *(UI)*
-  Save opens a small dialog with an optional name field. On submit it POSTs, returns to view mode, refreshes the list, and selects the new route. If any legs are still pending, Save waits for them.
+  Save opens a small dialog with an optional name field. On submit it POSTs (adding `createRoute` to `features/routes/api.ts`), returns to view mode, refreshes the list, and selects the new route. If any legs are still pending, Save waits for them.
   *Verify*: saving without a name gives a stats-based name, and the route appears in the sidebar.
 
 - [ ] **8.4 Dirty tracking and in-app confirm (FR-007)** *(UI)*
@@ -512,7 +514,7 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
 ## Phase 9: Edit and delete existing routes (US5, P2)
 
 - [ ] **9.1 Delete** *(UI)*
-  A Delete button on the selected route opens a confirm dialog and then sends `DELETE`. The route disappears from the map and the sidebar, and the selection clears.
+  A Delete button on the selected route opens a confirm dialog and then sends `DELETE` (adding `deleteRoute` to `features/routes/api.ts`). The route disappears from the map and the sidebar, and the selection clears.
   *Verify*: after deleting and reloading, the route is still gone.
 
 - [ ] **9.2 Load a route into the editor**
@@ -523,7 +525,7 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
   *Verify*: a Vitest test for the split. Clicking **Edit** shows the same line with nothing re-requested.
 
 - [ ] **9.3 Save an existing route**
-  Saving an edited route uses `PUT` and keeps the existing name, which can be changed in the dialog. A cleared name gets a new generated one.
+  Saving an edited route uses `PUT` (adding `updateRoute` to `features/routes/api.ts`) and keeps the existing name, which can be changed in the dialog. A cleared name gets a new generated one.
   *Verify*: extend a saved route, save it, reload, and check the new geometry and stats.
 
 **Milestone 9**: US5 is done, which completes every MVP user story.

@@ -1,6 +1,7 @@
 import { PeakMark } from '@/components/icons'
 import { metrics, track } from '@/telemetry'
-import { formatCoordinates, formatFeet } from './format'
+import { formatFeet } from '@/utils/format'
+import { formatCoordinates } from './format'
 import type { Peak } from './peak'
 import { PeakLinkList } from './PeakLinkList'
 import { usePaintLatency } from './usePaintLatency'

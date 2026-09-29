@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BootIcon, ExternalIcon, ListPeakIcon, SearchIcon, SummitIcon } from '@/components/icons'
 import { track } from '@/telemetry'
-import { formatFeet, formatMiles } from './format'
+import { formatFeet, formatMiles } from '@/utils/format'
 import type { Peak } from './peak'
 import { peakLinks, type PeakLink, type PeakLinkSite } from './peakLinks'
 import './PeakLinkList.css'

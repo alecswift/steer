@@ -1,0 +1,57 @@
+/* The route's details, in the same steps of emphasis as the peak panel: the
+   name, the distance as the one large figure, then the elevation stats in a
+   two-by-two grid, climb beside descent and low beside high (see
+   web/DESIGN.md). */
+.route-panel-title {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+  overflow-wrap: anywhere;
+}
+
+.route-panel-distance {
+  margin: var(--space-4) 0 0;
+  line-height: 1;
+}
+
+.route-panel-distance .route-panel-value {
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-heavy);
+  letter-spacing: -0.02em;
+}
+
+.route-panel-distance .route-panel-unit {
+  font-size: var(--text-lg);
+}
+
+.route-panel-unit {
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
+}
+
+.route-panel-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3) var(--space-4);
+  margin: var(--space-5) 0 0;
+}
+
+.route-panel-stats dt {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.route-panel-stats dd {
+  margin: 0;
+  font-size: var(--text-lg);
+  line-height: var(--leading-tight);
+}
+
+.route-panel-stats .route-panel-value {
+  font-weight: var(--weight-semibold);
+}
+
+.route-panel-stats .route-panel-unit {
+  font-size: var(--text-sm);
+}

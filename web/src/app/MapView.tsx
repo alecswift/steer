@@ -5,12 +5,14 @@ import { SatelliteLayer } from '@/features/imagery/SatelliteLayer'
 import { peakFromFeature, type Peak } from '@/features/peaks/peak'
 import { PeakLayer } from '@/features/peaks/PeakLayer'
 import { peakLayerId } from '@/features/peaks/peaks.style'
+import type { Route } from '@/features/routes/api'
 import { RouteLayer } from '@/features/routes/RouteLayer'
 import { ContourLayer } from '@/features/terrain/ContourLayer'
 import { HillshadeLayer } from '@/features/terrain/HillshadeLayer'
 import { TrailsLayer } from '@/features/trails/TrailsLayer'
 import { baseStyleUrl, defaultBounds } from '@/map/config'
 import { metrics, track } from '@/telemetry'
+import type { SelectedRoute } from './selection'
 
 const loadDuration = metrics.histogram('steer.app.load_duration_ms', {
   description: 'Time from navigation start until the map first finishes loading',
@@ -34,21 +36,35 @@ function reportLoaded() {
 const interactiveLayerIds = [peakLayerId]
 
 // The sidebar floats over the map's right edge, or its bottom on narrow
-// screens (see Sidebar.css), so the default view is framed in the space
-// beside it. Read once, since it only sets the first view.
+// screens (see Sidebar.css), so views are framed in the space beside it.
+function isNarrow() {
+  return window.matchMedia('(max-width: 40rem)').matches
+}
+
+// The first view, read once. The sheet is short then: just the route list
+// and a prompt.
 function defaultViewPadding() {
-  const narrow = window.matchMedia('(max-width: 40rem)').matches
-  return narrow ? { top: 24, right: 24, bottom: 140, left: 24 } : { top: 32, right: 416, bottom: 32, left: 32 }
+  return isNarrow() ? { top: 24, right: 24, bottom: 140, left: 24 } : { top: 32, right: 416, bottom: 32, left: 32 }
+}
+
+// A selected route is framed above the tallest the sheet can grow, 45vh
+// sitting 44px up from the bottom, since its stats make the sheet taller.
+function routePadding() {
+  if (!isNarrow()) return defaultViewPadding()
+  return { top: 24, right: 24, bottom: Math.round(window.innerHeight * 0.45) + 44 + 24, left: 24 }
 }
 
 type Props = {
+  // The route selected in the sidebar, the only route drawn.
+  route: Route | null
+  selectedRoute: SelectedRoute | null
   // `at` is the click's DOM timestamp, on the performance.now() timeline.
   onPeakClick: (peak: Peak, at: number) => void
   onEmptyClick: () => void
 }
 
-/** Renders the map layers and forwards peak or empty-map clicks to the selection callbacks. */
-export function MapView({ onPeakClick, onEmptyClick }: Props) {
+/** Renders the map layers and the selected route, and forwards peak or empty-map clicks to the selection callbacks. */
+export function MapView({ route, selectedRoute, onPeakClick, onEmptyClick }: Props) {
   const [hovering, setHovering] = useState(false)
 
   /**
@@ -81,7 +97,13 @@ export function MapView({ onPeakClick, onEmptyClick }: Props) {
       <HillshadeLayer />
       <ContourLayer />
       <TrailsLayer />
-      <RouteLayer />
+      {/* Under the peaks, so summits and their names stay readable. */}
+      <RouteLayer
+        route={route}
+        selectedAt={selectedRoute?.selectedAt ?? null}
+        padding={routePadding()}
+        beforeId={peakLayerId}
+      />
       <PeakLayer />
     </Map>
   )
