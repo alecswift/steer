@@ -396,22 +396,23 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
 
 ## Phase 5: Edit mode with straight lines (US2, no routing yet)
 
-- [ ] **5.1 Mode state and Create route button** *(UI)*
-  An app-level `mode: 'view' | 'edit'`. **Create route** enters edit mode, and an edit toolbar shell appears (Save, Cancel, Undo, Redo, Clear, Close loop, all disabled for now). Peak clicks are ignored in edit mode so that map clicks go to the editor.
+- [x] **5.1 Mode state and Create route button** *(UI)*
+  An app-level mode, `{ name: 'view' } | { name: 'edit', editor }` (`app/useMode.ts`), which holds the editor's history so it starts fresh each time edit mode opens. **Create route** in the sidebar enters edit mode, and the edit toolbar takes the sidebar's place (Undo, Redo, Clear, Close loop and Save, disabled for now; Cancel leaves edit mode). Peak clicks are ignored in edit mode so that map clicks go to the editor. The selected saved route is hidden, not unmounted, while editing, so leaving edit mode doesn't frame it again or record another `route.shown`.
   *Verify*: you can enter and leave edit mode.
 
-- [ ] **5.2 Editor reducer (pure logic)**
+- [x] **5.2 Editor reducer (pure logic)**
   - The history state is `{ waypoints }` with past and future stacks.
   - Actions: `ADD_POINT`, `UNDO`, `REDO`, `CLEAR`, `CLOSE_LOOP`. `CLEAR` can be undone. `CLOSE_LOOP` needs at least 3 points and appends the first point.
   - Map clicks are ignored while the loop is closed. Undo reopens it.
+  - An action that isn't possible returns the same state, so no history entry or event is recorded for it.
 
   *Verify*: thorough Vitest coverage of each action and its edge cases.
 
-- [ ] **5.3 Click to add points** *(UI)*
-  In edit mode, a map click dispatches `ADD_POINT`, including a click on a peak. Waypoint markers are drawn, and legs are drawn as dashed straight lines.
+- [x] **5.3 Click to add points** *(UI)*
+  In edit mode, a map click dispatches `ADD_POINT`, including a click on a peak. Waypoint markers are drawn above the peaks (the start as a ring, so you can see where a loop will close), and legs are drawn as dashed straight lines. Double-click zoom is off in edit mode, so a quick second click adds a point.
   *Verify*: clicking A, B, C draws markers and straight legs, and clicking a peak adds a waypoint rather than selecting it.
 
-- [ ] **5.4 Connect the toolbar** *(UI)*
+- [x] **5.4 Connect the toolbar** *(UI)*
   Undo, Redo, Clear, and Close loop dispatch their actions, and each button is enabled only when its action is possible.
   *Verify*: go through spec US2 scenarios 2–4 by hand.
 

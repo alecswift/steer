@@ -84,3 +84,53 @@ export function ExternalIcon(props: IconProps) {
     </Icon>
   )
 }
+
+/** Create: a plus. */
+export function PlusIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M10 4v12M4 10h12" />
+    </Icon>
+  )
+}
+
+/** Undo: an arrow curling back to the left. */
+export function UndoIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M7 4.5 3.5 8 7 11.5" />
+      <path d="M3.5 8h8a4.5 4.5 0 0 1 0 9H8" />
+    </Icon>
+  )
+}
+
+/** Redo: an arrow curling forward to the right. */
+export function RedoIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M13 4.5 16.5 8 13 11.5" />
+      <path d="M16.5 8h-8a4.5 4.5 0 0 0 0 9H12" />
+    </Icon>
+  )
+}
+
+/** Clear: a bin. */
+export function ClearIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M3.5 5.5h13M8 5.5V3.5h4v2" />
+      <path d="M5 5.5 6 16.5h8l1-11" />
+    </Icon>
+  )
+}
+
+/** Close loop: a path that runs back into its own start. */
+export function LoopIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="5.5" cy="14.5" r="2" />
+      <path d="M7.5 14.5h4a5 5 0 0 0 0-10H9a4.5 4.5 0 0 0-4.5 4.5v1.5" />
+      <path d="M2.5 8.5 4.5 10.5 6.5 8.5" />
+    </Icon>
+  )
+}

@@ -1,0 +1,141 @@
+/* The edit-mode tools, floating over the map where the sidebar sits in view
+   mode, on the raised surface used for toolbars (see web/DESIGN.md). */
+.edit-toolbar {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  box-sizing: border-box;
+  width: 22rem;
+  padding: var(--space-5);
+  background: var(--color-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2);
+  color: var(--color-text);
+}
+
+.edit-toolbar-title {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+}
+
+.edit-toolbar-status {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* One row of four, each tool its icon over its name. Tools pull out by
+   their own padding, like the sidebar's rows, so the first icon lines up
+   with the title. */
+.edit-toolbar-tools {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-1);
+  margin: var(--space-4) calc(-1 * var(--space-2)) 0;
+}
+
+.edit-toolbar-tool {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-1);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--text-sm);
+  line-height: var(--leading-tight);
+  cursor: pointer;
+  transition: background-color 120ms ease-out;
+}
+
+.edit-toolbar-tool svg {
+  color: var(--color-primary);
+}
+
+.edit-toolbar-tool:hover:enabled {
+  background: var(--color-surface);
+}
+
+.edit-toolbar-tool:disabled {
+  color: var(--color-text-muted);
+  opacity: 0.55;
+  cursor: default;
+}
+
+.edit-toolbar-tool:disabled svg {
+  color: inherit;
+}
+
+/* Leaving edit mode, set apart below the tools. */
+.edit-toolbar-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.edit-toolbar-button {
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+  transition: background-color 120ms ease-out;
+}
+
+.edit-toolbar-button:hover:enabled {
+  background: var(--color-surface);
+}
+
+.edit-toolbar-button--primary {
+  border-color: transparent;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.edit-toolbar-button--primary:hover:enabled {
+  background: var(--color-primary);
+  filter: brightness(1.1);
+}
+
+.edit-toolbar-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.edit-toolbar-tool:focus-visible,
+.edit-toolbar-button:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* On narrow screens it becomes a sheet along the bottom, like the
+   sidebar. */
+@media (max-width: 40rem) {
+  .edit-toolbar {
+    top: auto;
+    left: var(--space-3);
+    right: var(--space-3);
+    bottom: calc(var(--space-3) + 2rem);
+    width: auto;
+    padding: var(--space-4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edit-toolbar-tool,
+  .edit-toolbar-button {
+    transition: none;
+  }
+}

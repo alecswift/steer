@@ -58,6 +58,7 @@ MapLibre can't read CSS variables, so map colours live in [`src/styles/tokens.ts
 | Token | Value | Why |
 |---|---|---|
 | `route` | `#E6532C` | Strong, redder orange. Tested against a blaze orange (`#FF5F15`), which looked too close to the base map's orange I-90. |
+| `routeHalo` | `#FFFFFF` | The edge of waypoint markers and the fill of the start marker, so points stand off the route line and the terrain. |
 | `trail` | `#7B1FA2` | Purple reads clearly on green terrain and never looks like a road. |
 | `contourLine` | `rgba(120, 80, 40, 0.6)` | Classic brown contours. |
 | `contourLabel` / `contourLabelHalo` | `#5C3D1F` / `#FFF1BD` | Halo uses the palette's cream. |

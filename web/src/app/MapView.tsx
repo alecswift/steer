@@ -6,6 +6,8 @@ import { peakFromFeature, type Peak } from '@/features/peaks/peak'
 import { PeakLayer } from '@/features/peaks/PeakLayer'
 import { peakLayerId } from '@/features/peaks/peaks.style'
 import type { Route } from '@/features/routes/api'
+import type { LngLat } from '@/features/routes/editor'
+import { EditorLayer } from '@/features/routes/EditorLayer'
 import { RouteLayer } from '@/features/routes/RouteLayer'
 import { ContourLayer } from '@/features/terrain/ContourLayer'
 import { HillshadeLayer } from '@/features/terrain/HillshadeLayer'
@@ -34,6 +36,9 @@ function reportLoaded() {
 }
 
 const interactiveLayerIds = [peakLayerId]
+// In edit mode every click, even on a peak, adds a point, so no layer is
+// interactive.
+const noInteractiveLayers: string[] = []
 
 // The sidebar floats over the map's right edge, or its bottom on narrow
 // screens (see Sidebar.css), so views are framed in the space beside it.
@@ -58,20 +63,33 @@ type Props = {
   // The route selected in the sidebar, the only route drawn.
   route: Route | null
   selectedRoute: SelectedRoute | null
+  // The route being edited, or null in view mode.
+  editWaypoints: LngLat[] | null
   // `at` is the click's DOM timestamp, on the performance.now() timeline.
   onPeakClick: (peak: Peak, at: number) => void
   onEmptyClick: () => void
+  onAddPoint: (point: LngLat) => void
 }
 
-/** Renders the map layers and the selected route, and forwards peak or empty-map clicks to the selection callbacks. */
-export function MapView({ route, selectedRoute, onPeakClick, onEmptyClick }: Props) {
+/**
+ * Renders the map layers with the selected route in view mode, or the route
+ * being edited in edit mode. In view mode, forwards peak or empty-map clicks
+ * to the selection callbacks; in edit mode, every click adds a point.
+ */
+export function MapView({ route, selectedRoute, editWaypoints, onPeakClick, onEmptyClick, onAddPoint }: Props) {
   const [hovering, setHovering] = useState(false)
+  const editing = editWaypoints !== null
 
   /**
    * Reads the first interactive peak feature and forwards it with the DOM click timestamp.
-   * Calls onEmptyClick when the click has no valid peak feature.
+   * Calls onEmptyClick when the click has no valid peak feature. In edit
+   * mode, adds the clicked point instead.
    */
   function handleClick(e: MapLayerMouseEvent) {
+    if (editing) {
+      onAddPoint([e.lngLat.lng, e.lngLat.lat])
+      return
+    }
     const feature = e.features?.[0]
     const peak = feature ? peakFromFeature(feature) : null
     if (peak) onPeakClick(peak, e.originalEvent.timeStamp)
@@ -84,11 +102,13 @@ export function MapView({ route, selectedRoute, onPeakClick, onEmptyClick }: Pro
       style={{ width: '100%', height: '100%' }}
       mapStyle={baseStyleUrl}
       onLoad={reportLoaded}
-      interactiveLayerIds={interactiveLayerIds}
+      interactiveLayerIds={editing ? noInteractiveLayers : interactiveLayerIds}
       onClick={handleClick}
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
-      cursor={hovering ? 'pointer' : undefined}
+      cursor={editing ? 'crosshair' : hovering ? 'pointer' : undefined}
+      // A quick second click adds a point rather than zooming in.
+      doubleClickZoom={!editing}
       attributionControl={false}
     >
       {/* Bottom-left, clear of the floating sidebar. */}
@@ -97,14 +117,19 @@ export function MapView({ route, selectedRoute, onPeakClick, onEmptyClick }: Pro
       <HillshadeLayer />
       <ContourLayer />
       <TrailsLayer />
-      {/* Under the peaks, so summits and their names stay readable. */}
+      {/* Under the peaks, so summits and their names stay readable. Hidden,
+          not removed, while editing, so leaving edit mode doesn't frame it
+          again. */}
       <RouteLayer
         route={route}
+        visible={!editing}
         selectedAt={selectedRoute?.selectedAt ?? null}
         padding={routePadding()}
         beforeId={peakLayerId}
       />
       <PeakLayer />
+      {/* Over the peaks, so the points you place are never hidden. */}
+      {editing && <EditorLayer waypoints={editWaypoints} />}
     </Map>
   )
 }
