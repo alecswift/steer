@@ -62,6 +62,7 @@ These were settled while planning and resolve open items in the spec.
 | Frontend errors | error log | message, stack trace, component | 0.9 |
 | HTTP requests | Phoenix spans + metrics | route, status, duration | 2.5, 2.7 |
 | Database queries | Ecto spans | query source, duration | 2.5 |
+| `steer.routes.build` | span | `leg_count`, `straight_leg_count`, `point_count`, `distance_m` | 3.5 |
 | `peak.selected` | event | `peak_name` (1.2); `in_washington`, `has_exact_links` (1.7) | 1.2, 1.7 |
 | `peak.panel_shown` | event + histogram (`steer.peak.select_to_panel_ms`) | `peak_name`, `select_to_panel_ms`: from the `peak.selected` click until the peak details panel has painted. The **SC-006** panels (p95 under 100 ms) read the event from Loki, which counts every click; the histogram can miss the first click after a page load | 1.3 |
 | `peak.link_opened` | event | `site` (summitpost / peakbagger / wta), `link_type` (exact / search) | 1.8 |
@@ -332,30 +333,32 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
 
   *Verify*: ExUnit tests with fixed lines whose stats are known (flat, climbing, up then down, and noise within the threshold).
 
-- [ ] **3.5 Assemble a route from legs**
+- [x] **3.5 Assemble a route from legs**
   `Steer.Routes.build/1` takes `waypoints` and `legs` (`[{coordinates: [[lon,lat,z]], snapped: bool}]`) and does the following:
   - joins the legs into one line, removing duplicate joint vertices
   - computes each waypoint's `geometry_index`
   - computes the stats
+  - records a `steer.routes.build` span with the leg, straight leg and point counts and the distance
 
-  *Verify*: ExUnit tests covering 2 legs, 3 legs, and a closed loop.
+  *Verify*: ExUnit tests covering 2 legs, 3 legs, and a closed loop, and the span in Tempo.
 
-- [ ] **3.6 Auto-generated names**
+- [x] **3.6 Auto-generated names**
   If the name is blank, generate `"{distance} mi {loop|route} · {Mon D}"`. It's a loop when the first and last waypoint are the same. Add ` (n)` when the name already exists for that user.
   *Verify*: ExUnit tests for the loop, route, and duplicate cases.
 
-- [ ] **3.7 Routes context CRUD**
+- [x] **3.7 Routes context CRUD**
   `list_routes/1`, `get_route!/2`, `create_route/2`, `update_route/2`, `delete_route/1`, all scoped to a user.
   *Verify*: ExUnit context tests.
 
-- [ ] **3.8 Routes JSON API**
+- [x] **3.8 Routes JSON API**
   - Endpoints: `GET /api/routes` (a GeoJSON FeatureCollection), `GET /api/routes/:id`, `POST`, `PUT`, and `DELETE`.
-  - Each feature's properties carry the name, stats, and waypoints.
+  - `POST` and `PUT` take `{name?, waypoints: [{lon, lat}], legs}` as `Steer.Routes.build/1` does. Invalid input is a 422 with `{errors: {field: [message]}}`.
+  - Each feature's geometry is a GeoJSON `LineString` with `[lon, lat, z]` positions, and its properties carry the name, stats, waypoints, and `inserted_at`/`updated_at` timestamps.
 
   *Verify*: controller tests, and `curl` a create and a list.
 
-- [ ] **3.9 Dev seed routes**
-  Two or three hand-made routes around Snoqualmie Pass with Z values (for example Snow Lake, or Bandera to Mason Lake), created in `seeds.exs` through the context.
+- [x] **3.9 Dev seed routes**
+  Three routes around Snoqualmie Pass with Z values, created in `seeds.exs` through the context from `priv/repo/seed_routes.json` (in the `POST /api/routes` shape): Snow Lake and back (a loop), Source Lake then Snow Lake, and Denny Creek to Melakwa Lake with no name, so it gets a generated one. The lines follow OpenStreetMap trails, with Z from AWS Terrain Tiles. They're only added in dev, to a database with no routes, so the seeds stay safe to run again.
   *Verify*: `mix run priv/repo/seeds.exs`, and `curl /api/routes` returns them.
 
 **Milestone 3**: A working routes API with stats and generated names, testable with curl.
