@@ -46,6 +46,8 @@ defmodule SteerWeb.RouteControllerTest do
 
       assert id == route.id
       assert_in_delta feature["properties"]["distance_m"], 1113.195, 0.001
+      assert feature["properties"]["inserted_at"] == DateTime.to_iso8601(route.inserted_at)
+      assert feature["properties"]["updated_at"] == DateTime.to_iso8601(route.updated_at)
     end
 
     test "lists only the default user's routes", %{conn: conn} do

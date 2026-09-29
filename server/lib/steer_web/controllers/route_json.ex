@@ -36,7 +36,9 @@ defmodule SteerWeb.RouteJSON do
         max_ele_m: route.max_ele_m,
         gain_m: route.gain_m,
         loss_m: route.loss_m,
-        waypoints: Enum.map(route.waypoints, &Map.take(&1, [:lon, :lat, :geometry_index]))
+        waypoints: Enum.map(route.waypoints, &Map.take(&1, [:lon, :lat, :geometry_index])),
+        inserted_at: route.inserted_at,
+        updated_at: route.updated_at
       }
     }
   end
