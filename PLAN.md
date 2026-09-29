@@ -342,7 +342,7 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
 
   *Verify*: ExUnit tests covering 2 legs, 3 legs, and a closed loop, and the span in Tempo.
 
-- [ ] **3.6 Auto-generated names**
+- [x] **3.6 Auto-generated names**
   If the name is blank, generate `"{distance} mi {loop|route} · {Mon D}"`. It's a loop when the first and last waypoint are the same. Add ` (n)` when the name already exists for that user.
   *Verify*: ExUnit tests for the loop, route, and duplicate cases.
 
