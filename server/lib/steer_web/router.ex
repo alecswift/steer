@@ -9,5 +9,6 @@ defmodule SteerWeb.Router do
     pipe_through :api
 
     get "/health", HealthController, :show
+    resources "/routes", RouteController, except: [:new, :edit]
   end
 end
