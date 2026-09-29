@@ -19,6 +19,17 @@ services:
       timeout: 5s
       retries: 10
 
+  # Routing engine. Only Phoenix calls it (FR-012).
+  brouter:
+    # The upstream image's newest release tag. It's amd64-only; Apple
+    # Silicon runs it under emulation.
+    image: ghcr.io/abrensch/brouter:v1.7.8
+    platform: linux/amd64
+    ports:
+      - "127.0.0.1:17777:17777"
+    volumes:
+      - brouter-segments:/segments4
+
   # OpenTelemetry collector + Loki (logs), Tempo (traces), Prometheus
   # (metrics) and Grafana, all in one dev-only container.
   telemetry:
@@ -41,4 +52,5 @@ services:
 
 volumes:
   db-data:
+  brouter-segments:
   telemetry-data:

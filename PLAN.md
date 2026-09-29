@@ -33,7 +33,7 @@ These were settled while planning and resolve open items in the spec.
 ### Open questions (decided in the chunk that needs them)
 
 - ~~**Elevation noise** (chunk 3.4)~~: decided. Gain and loss use a 5 m hysteresis.
-- **BRouter Docker image** (chunk 6.1): build from the upstream repo's Dockerfile or use a community image.
+- ~~**BRouter Docker image** (chunk 6.1)~~: decided. The upstream image `ghcr.io/abrensch/brouter:v1.7.8`, its newest release tag. It's amd64-only and runs under emulation on Apple Silicon. The multi-arch `nightly` tag was passed over because it's unreleased code.
 - **BRouter segment acquisition** (chunk 6.2): download on demand, download the whole world upfront, or a configurable region list.
 - **PNG decoding in Elixir** (chunk 6.5): pick a library to read Terrarium tiles.
 
@@ -422,8 +422,8 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
 
 ## Phase 6: Routing engine (BRouter behind Phoenix)
 
-- [ ] **6.1 BRouter in Docker Compose**
-  Add a `brouter` service with volumes for segments and profiles. Choose the image here.
+- [x] **6.1 BRouter in Docker Compose**
+  Add a `brouter` service (`ghcr.io/abrensch/brouter:v1.7.8`) on `localhost:17777`, with a `brouter-segments` volume. The custom profiles volume waits for 6.3, the first chunk that needs it.
   *Verify*: the container starts and answers HTTP requests.
 
 - [ ] **6.2 Solve segment acquisition** *(the deferred decision)*
@@ -431,7 +431,7 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
   *Verify*: a `curl` straight to BRouter for an A→B pair near Snoqualmie Pass returns a GeoJSON track with elevation.
 
 - [ ] **6.3 Hiking profile**
-  Choose the stock profile (e.g. `hiking-mountain`) and adjust it if needed so that trails beat roads.
+  Choose the stock profile (e.g. `hiking-mountain`) and adjust it if needed so that trails beat roads. An adjusted profile goes in a custom profiles volume on the `brouter` service, mounted at `/customprofiles`.
   *Verify*: for a known pair of points with both a trail and a road between them, the result follows the trail (SC-005).
 
 - [ ] **6.4 `Steer.Routing` behaviour and BRouter adapter**

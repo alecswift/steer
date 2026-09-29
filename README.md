@@ -9,7 +9,7 @@ Steer is an early hiking map prototype displaying trails, topographic contour li
 | Path | What it is |
 |---|---|
 | `web/` | The frontend: React + TypeScript + Vite, with MapLibre for the map. |
-| `docker-compose.yml` | Local services: PostGIS (`db`) and the telemetry stack (`telemetry`). |
+| `docker-compose.yml` | Local services: PostGIS (`db`), the BRouter routing engine (`brouter`) and the telemetry stack (`telemetry`). |
 | `telemetry/grafana/` | The Steer Grafana dashboard and its provisioning file. |
 | `SPEC.md`, `PLAN.md` | What Steer does, and the order it's being built in. |
 | `web/DESIGN.md` | The visual direction and design tokens for the UI. |
@@ -30,7 +30,7 @@ export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
 From a clean checkout, run these from the repo root:
 
 ```sh
-docker compose up -d db telemetry   # start PostGIS and the telemetry stack
+docker compose up -d                # start PostGIS, BRouter and the telemetry stack
 cd web
 npm install
 npm run dev                         # start the app on localhost:3000
@@ -63,6 +63,10 @@ docker compose exec db psql -U postgres
 ```
 
 Nothing uses the database yet; the Phoenix backend arrives in Phase 2 of the plan.
+
+## Routing
+
+The `brouter` service runs [BRouter](https://github.com/abrensch/brouter) on `localhost:17777`. Only the Phoenix backend calls it; the frontend asks Phoenix for snapped legs. The image is amd64-only, so on Apple Silicon it runs under emulation. BRouter reads its routing data (segment files) from the `brouter-segments` Docker volume, which starts out empty, so until segments are added every request answers `datafile ... not found`.
 
 ## Telemetry
 
