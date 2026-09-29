@@ -28,6 +28,9 @@ export type Route = GeoJSON.Feature<GeoJSON.LineString, RouteProperties> & { id:
 export async function listRoutes(): Promise<Route[]> {
   const response = await fetch('/api/routes')
   if (!response.ok) throw new Error(`GET /api/routes failed with status ${response.status}`)
-  const collection = (await response.json()) as GeoJSON.FeatureCollection<GeoJSON.LineString, RouteProperties>
+  const collection = (await response.json()) as { features?: unknown } | null
+  if (!Array.isArray(collection?.features)) {
+    throw new Error('GET /api/routes returned invalid features')
+  }
   return collection.features as Route[]
 }

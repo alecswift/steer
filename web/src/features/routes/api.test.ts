@@ -49,6 +49,14 @@ describe('listRoutes', () => {
     await expect(listRoutes()).resolves.toEqual([])
   })
 
+  it.each([null, {}, { features: null }, { features: {} }])(
+    'rejects a successful response without a features array: %j',
+    async (collection) => {
+      mockFetch(Response.json(collection))
+      await expect(listRoutes()).rejects.toThrow('GET /api/routes returned invalid features')
+    },
+  )
+
   it('throws when the server responds with an error', async () => {
     mockFetch(new Response('', { status: 500 }))
     await expect(listRoutes()).rejects.toThrow('GET /api/routes failed with status 500')
