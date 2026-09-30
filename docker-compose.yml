@@ -19,6 +19,32 @@ services:
       timeout: 5s
       retries: 10
 
+  # Routing engine. Only Phoenix calls it (FR-012).
+  brouter:
+    # Built from the upstream v1.7.10 release: ghcr.io only publishes
+    # images up to v1.7.8, which can't read today's segment files
+    # (lookup version 11).
+    build: https://github.com/abrensch/brouter.git#v1.7.10
+    image: steer-brouter:v1.7.10
+    ports:
+      - "127.0.0.1:17777:17777"
+    volumes:
+      - brouter-segments:/segments4
+
+  # One-shot download of BRouter's segment files (the whole world, about
+  # 10 GB) into the brouter-segments volume. The "tools" profile keeps
+  # `docker compose up` from starting it; run it with
+  # `docker compose run --rm brouter-segments`.
+  brouter-segments:
+    image: curlimages/curl:8.22.0
+    profiles: ["tools"]
+    # The image's default user can't write to a fresh volume.
+    user: root
+    entrypoint: ["/bin/sh", "/download-segments.sh"]
+    volumes:
+      - brouter-segments:/segments4
+      - ./brouter/download-segments.sh:/download-segments.sh:ro
+
   # OpenTelemetry collector + Loki (logs), Tempo (traces), Prometheus
   # (metrics) and Grafana, all in one dev-only container.
   telemetry:
