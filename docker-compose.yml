@@ -67,4 +67,5 @@ services:
 
 volumes:
   db-data:
+  brouter-segments:
   telemetry-data:
