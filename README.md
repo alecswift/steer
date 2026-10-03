@@ -9,7 +9,8 @@ Steer is an early hiking map prototype displaying trails, topographic contour li
 | Path | What it is |
 |---|---|
 | `web/` | The frontend: React + TypeScript + Vite, with MapLibre for the map. |
-| `docker-compose.yml` | Local services: PostGIS (`db`) and the telemetry stack (`telemetry`). |
+| `docker-compose.yml` | Local services: PostGIS (`db`), the BRouter routing engine (`brouter`) and the telemetry stack (`telemetry`). |
+| `brouter/` | The script that downloads BRouter's segment files. |
 | `telemetry/grafana/` | The Steer Grafana dashboard and its provisioning file. |
 | `SPEC.md`, `PLAN.md` | What Steer does, and the order it's being built in. |
 | `web/DESIGN.md` | The visual direction and design tokens for the UI. |
@@ -63,6 +64,22 @@ docker compose exec db psql -U postgres
 ```
 
 Nothing uses the database yet; the Phoenix backend arrives in Phase 2 of the plan.
+
+## Routing
+
+The `brouter` service runs [BRouter](https://github.com/abrensch/brouter) on `localhost:17777`. Only the Phoenix backend calls it; the frontend asks Phoenix for snapped legs. Compose builds it from the upstream v1.7.10 release (no published image is new enough), so the first `docker compose up` takes a few minutes. BRouter reads its routing data (segment files) from the `brouter-segments` Docker volume, which starts out empty, so until segments are added every request answers `datafile ... not found`. To download them (the whole world, about 10 GB, once per machine):
+
+```sh
+docker compose run --rm brouter-segments
+```
+
+The download skips files that are already there, so rerunning it resumes an interrupted download. The segments are rebuilt from OpenStreetMap daily; to refresh them, remove the volume (`docker compose down` then `docker volume rm steer_brouter-segments`) and download again.
+
+After the download finishes, start BRouter from the repo root:
+
+```sh
+docker compose up -d brouter
+```
 
 ## Telemetry
 

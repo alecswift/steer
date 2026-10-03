@@ -13,7 +13,7 @@ These were settled while planning and resolve open items in the spec.
 | Topic | Decision |
 |---|---|
 | Routing engine (FR-012) | **Self-hosted BRouter**, called only by Phoenix through a `Steer.Routing` adapter. The frontend never talks to BRouter directly. |
-| Segment files | **Open.** Solved in chunk 6.2 (see "Open questions"). |
+| Segment files | **The whole world, downloaded upfront** (about 10 GB) by a one-shot `brouter-segments` compose service, run by hand. Chosen in chunk 6.2. |
 | Elevation source | Snapped legs use **BRouter's Z values**. Straight fallback legs get Z sampled from **AWS Terrarium tiles in Phoenix**. |
 | Repo layout | `web/` (Vite + React) and `server/` (Phoenix). `docker-compose.yml` at the root. |
 | Local infra | **Docker Compose** runs PostGIS, BRouter and the telemetry stack. Phoenix and Vite run natively. |
@@ -33,8 +33,8 @@ These were settled while planning and resolve open items in the spec.
 ### Open questions (decided in the chunk that needs them)
 
 - ~~**Elevation noise** (chunk 3.4)~~: decided. Gain and loss use a 5 m hysteresis.
-- **BRouter Docker image** (chunk 6.1): build from the upstream repo's Dockerfile or use a community image.
-- **BRouter segment acquisition** (chunk 6.2): download on demand, download the whole world upfront, or a configurable region list.
+- ~~**BRouter Docker image** (chunk 6.1, revised in 6.2)~~: decided. Compose **builds the upstream v1.7.10 release** from its git tag (`build: https://github.com/abrensch/brouter.git#v1.7.10`), natively on Apple Silicon. 6.1 first used `ghcr.io/abrensch/brouter:v1.7.8`, the newest image ghcr.io publishes, but it reads only lookup version 10, and the segment files on brouter.de are now version 11 (v1.7.9 and later). The multi-arch `nightly` tag was passed over because it's unreleased code.
+- ~~**BRouter segment acquisition** (chunk 6.2)~~: decided. The whole world upfront: 1,142 tiles, about 10 GB. BRouter can't download segments on demand itself, and on demand from Phoenix would miss the 1-second budget (SC-001) on the first leg in each new 5° tile. A region list would leave most of the world without snapping (FR-011). A one-shot `brouter-segments` service (`curlimages/curl`, profile `tools`) runs `brouter/download-segments.sh`, so `docker compose up` never starts a 10 GB download by surprise.
 - **PNG decoding in Elixir** (chunk 6.5): pick a library to read Terrarium tiles.
 
 ### Later (after the MVP)
@@ -422,12 +422,12 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
 
 ## Phase 6: Routing engine (BRouter behind Phoenix)
 
-- [ ] **6.1 BRouter in Docker Compose**
-  Add a `brouter` service with volumes for segments and profiles. Choose the image here.
+- [x] **6.1 BRouter in Docker Compose**
+  Add a `brouter` service (built from upstream v1.7.10, see "Open questions") on `localhost:17777`, with a `brouter-segments` volume. The custom profiles volume waits for 6.3, the first chunk that needs it.
   *Verify*: the container starts and answers HTTP requests.
 
-- [ ] **6.2 Solve segment acquisition** *(the deferred decision)*
-  Choose between downloading on demand, downloading the whole world, or a configurable region list, then implement the simplest version that meets FR-011.
+- [x] **6.2 Solve segment acquisition** *(the deferred decision)*
+  Download the whole world upfront with a one-shot `brouter-segments` compose service (`docker compose run --rm brouter-segments`) that skips files already there.
   *Verify*: a `curl` straight to BRouter for an A→B pair near Snoqualmie Pass returns a GeoJSON track with elevation.
 
 - [ ] **6.3 Hiking profile**
