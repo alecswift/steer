@@ -75,6 +75,12 @@ docker compose run --rm brouter-segments
 
 The download skips files that are already there, so rerunning it resumes an interrupted download. The segments are rebuilt from OpenStreetMap daily; to refresh them, remove the volume (`docker compose down` then `docker volume rm steer_brouter-segments`) and download again.
 
+After the download finishes, start BRouter from the repo root:
+
+```sh
+docker compose up -d brouter
+```
+
 ## Telemetry
 
 The browser sends traces, logs, errors, product events and metrics with OpenTelemetry. In dev, they go through the Vite proxy at `/otlp` to the `telemetry` container, which runs an OpenTelemetry collector, Loki (logs), Tempo (traces), Prometheus (metrics) and Grafana.
