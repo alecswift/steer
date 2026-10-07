@@ -423,16 +423,16 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
 ## Phase 6: Routing engine (BRouter behind Phoenix)
 
 - [x] **6.1 BRouter in Docker Compose**
-  Add a `brouter` service (built from upstream v1.7.10, see "Open questions") on `localhost:17777`, with a `brouter-segments` volume. The custom profiles volume waits for 6.3, the first chunk that needs it.
+  Add a `brouter` service (built from upstream v1.7.10, see "Open questions") on `localhost:17777`, with a `brouter-segments` volume. No custom profiles volume is needed: 6.3 tunes a stock profile with a request parameter.
   *Verify*: the container starts and answers HTTP requests.
 
 - [x] **6.2 Solve segment acquisition** *(the deferred decision)*
   Download the whole world upfront with a one-shot `brouter-segments` compose service (`docker compose run --rm brouter-segments`) that skips files already there.
   *Verify*: a `curl` straight to BRouter for an A→B pair near Snoqualmie Pass returns a GeoJSON track with elevation.
 
-- [ ] **6.3 Hiking profile**
-  Choose the stock profile (e.g. `hiking-mountain`) and adjust it if needed so that trails beat roads.
-  *Verify*: for a known pair of points with both a trail and a road between them, the result follows the trail (SC-005).
+- [x] **6.3 Hiking profile**
+  The stock `hiking-mountain` profile, with its `path_preference` raised from 0 to 10 by a `profile:path_preference=10` request parameter, so no custom profile file is needed. It adds 10 to the cost factor of every way that isn't a path, footway, track or road, so trails beat roads. On the pairs checked near Snoqualmie Pass, any value from 3 to 20 gave the same routes.
+  *Verify*: for a known pair of points with both a trail and a road between them, the result follows the trail (SC-005). From the Pacific Crest Trail access at Snoqualmie Pass (-121.4133, 47.42769) to the Source Lake Trail (-121.45167, 47.45762), the stock profile walks 2.4 km of Alpental Road and the tuned one stays on trails (7.5 km, 14 m of road).
 
 - [ ] **6.4 `Steer.Routing` behaviour and BRouter adapter**
   `snap(from, to) :: {:ok, [[lon, lat, z]]} | {:error, :no_route | :timeout | term}`. Parse BRouter's GeoJSON and set a timeout that fits the 1-second budget.
