@@ -20,6 +20,10 @@ config :steer, SteerWeb.Endpoint,
   secret_key_base: "K2xiKxoYDRz8t+VZlYlXGPHxik7Wm9HvwS4MBT0h6sgfJxrP//aqQ6hJ10LKAwx2",
   server: false
 
+# Tests stub HTTP calls to BRouter and the DEM tiles with Req.Test.
+config :steer, Steer.Routing.BRouter, plug: {Req.Test, Steer.Routing.BRouter}
+config :steer, Steer.Elevation.Tiles, plug: {Req.Test, Steer.Elevation.Tiles}
+
 # Don't export telemetry from tests.
 config :opentelemetry, traces_exporter: :none
 

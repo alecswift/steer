@@ -14,7 +14,7 @@ These were settled while planning and resolve open items in the spec.
 |---|---|
 | Routing engine (FR-012) | **Self-hosted BRouter**, called only by Phoenix through a `Steer.Routing` adapter. The frontend never talks to BRouter directly. |
 | Segment files | **The whole world, downloaded upfront** (about 10 GB) by a one-shot `brouter-segments` compose service, run by hand. Chosen in chunk 6.2. |
-| Elevation source | Snapped legs use **BRouter's Z values**. Straight fallback legs get Z sampled from **AWS Terrarium tiles in Phoenix**. |
+| Elevation source | Snapped legs use **BRouter's Z values**. Straight fallback legs get Z sampled from **AWS Terrarium tiles in Phoenix**, as do the rare snapped vertices BRouter has no elevation for. |
 | Repo layout | `web/` (Vite + React) and `server/` (Phoenix). `docker-compose.yml` at the root. |
 | Local infra | **Docker Compose** runs PostGIS, BRouter and the telemetry stack. Phoenix and Vite run natively. |
 | Telemetry | Telemetry is **central to the project**. **OpenTelemetry** is used everywhere, for structured logs, traces, metrics, product events and errors. The data goes to a **Grafana LGTM** container (Loki, Grafana, Tempo, and Prometheus/Mimir for metrics) in Docker Compose. It starts in Phase 0 (browser) and Phase 2 (Phoenix), and **every chunk after that adds its own telemetry** (see "Telemetry conventions"). The same OpenTelemetry setup can later send to a hosted service by changing an endpoint. |
@@ -35,7 +35,7 @@ These were settled while planning and resolve open items in the spec.
 - ~~**Elevation noise** (chunk 3.4)~~: decided. Gain and loss use a 5 m hysteresis.
 - ~~**BRouter Docker image** (chunk 6.1, revised in 6.2)~~: decided. Compose **builds the upstream v1.7.10 release** from its git tag (`build: https://github.com/abrensch/brouter.git#v1.7.10`), natively on Apple Silicon. 6.1 first used `ghcr.io/abrensch/brouter:v1.7.8`, the newest image ghcr.io publishes, but it reads only lookup version 10, and the segment files on brouter.de are now version 11 (v1.7.9 and later). The multi-arch `nightly` tag was passed over because it's unreleased code.
 - ~~**BRouter segment acquisition** (chunk 6.2)~~: decided. The whole world upfront: 1,142 tiles, about 10 GB. BRouter can't download segments on demand itself, and on demand from Phoenix would miss the 1-second budget (SC-001) on the first leg in each new 5° tile. A region list would leave most of the world without snapping (FR-011). A one-shot `brouter-segments` service (`curlimages/curl`, profile `tools`) runs `brouter/download-segments.sh`, so `docker compose up` never starts a 10 GB download by surprise.
-- **PNG decoding in Elixir** (chunk 6.5): pick a library to read Terrarium tiles.
+- ~~**PNG decoding in Elixir** (chunk 6.5)~~: decided. Steer has **its own minimal decoder** (`Steer.Elevation.PNG`): Terrarium tiles are always 8-bit RGB and not interlaced, and Erlang's `:zlib` does the decompression, so there's no native dependency. `stb_image` (a NIF) and `image` (libvips) were passed over as more than this needs.
 
 ### Later (after the MVP)
 
@@ -70,7 +70,7 @@ These were settled while planning and resolve open items in the spec.
 | `route.shown` | event | `route_id`, `select_to_fit_ms`: from the `route.selected` click until the map first shows the route and starts framing it. The **SC-003** panels (p95 under 100 ms) read it from Loki, like SC-006 | 4.3 |
 | `editor.opened` | event | `mode` (new / existing) | 5.1, 9.2 |
 | `editor.point_added`, `editor.undo`, `editor.redo`, `editor.cleared`, `editor.loop_closed` | events | `point_count` | 5.3, 5.4 |
-| BRouter call | span | status, `no_route`, duration | 6.4 |
+| `steer.routing.brouter` | span | `http.response.status_code`, `no_route`; error status on failures other than no route | 6.4 |
 | `steer.snap.fallback` | counter | `reason` (no_route / timeout / error) | 6.7 |
 | `steer.dem.tile_cache` | counter | `result` (hit / miss) | 6.5 |
 | `steer.snap.duration_ms` | histogram (server and client) | `snapped`; **SC-001** panel, p95 under 1000 ms | 6.8, 7.3 |
@@ -423,34 +423,34 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
 ## Phase 6: Routing engine (BRouter behind Phoenix)
 
 - [x] **6.1 BRouter in Docker Compose**
-  Add a `brouter` service (built from upstream v1.7.10, see "Open questions") on `localhost:17777`, with a `brouter-segments` volume. The custom profiles volume waits for 6.3, the first chunk that needs it.
+  Add a `brouter` service (built from upstream v1.7.10, see "Open questions") on `localhost:17777`, with a `brouter-segments` volume. No custom profiles volume is needed: 6.3 tunes a stock profile with a request parameter.
   *Verify*: the container starts and answers HTTP requests.
 
 - [x] **6.2 Solve segment acquisition** *(the deferred decision)*
   Download the whole world upfront with a one-shot `brouter-segments` compose service (`docker compose run --rm brouter-segments`) that skips files already there.
   *Verify*: a `curl` straight to BRouter for an A→B pair near Snoqualmie Pass returns a GeoJSON track with elevation.
 
-- [ ] **6.3 Hiking profile**
-  Choose the stock profile (e.g. `hiking-mountain`) and adjust it if needed so that trails beat roads.
-  *Verify*: for a known pair of points with both a trail and a road between them, the result follows the trail (SC-005).
+- [x] **6.3 Hiking profile**
+  The stock `hiking-mountain` profile, with its `path_preference` raised from 0 to 10 by a `profile:path_preference=10` request parameter, so no custom profile file is needed. It adds 10 to the cost factor of every way that isn't a path, footway, track or road, so trails beat roads. On the pairs checked near Snoqualmie Pass, any value from 3 to 20 gave the same routes.
+  *Verify*: for a known pair of points with both a trail and a road between them, the result follows the trail (SC-005). From the Pacific Crest Trail access at Snoqualmie Pass (-121.4133, 47.42769) to the Source Lake Trail (-121.45167, 47.45762), the stock profile walks 2.4 km of Alpental Road and the tuned one stays on trails (7.5 km, 14 m of road).
 
-- [ ] **6.4 `Steer.Routing` behaviour and BRouter adapter**
-  `snap(from, to) :: {:ok, [[lon, lat, z]]} | {:error, :no_route | :timeout | term}`. Parse BRouter's GeoJSON and set a timeout that fits the 1-second budget.
+- [x] **6.4 `Steer.Routing` behaviour and BRouter adapter**
+  `snap(from, to) :: {:ok, [[lon, lat, z]]} | {:error, :no_route | :timeout | term}`. Parse BRouter's GeoJSON and set a timeout that fits the 1-second budget (700 ms, with no retry). BRouter answers 400 with "not mapped", "no track found" or "island detected" when there's no route. Where BRouter has no elevation data, a vertex comes back as `[lon, lat]`.
   *Verify*: ExUnit tests with a stubbed HTTP client (Req.Test) cover success, no route, and timeout.
 
-- [ ] **6.5 DEM tile fetch and decode**
-  - `Steer.Elevation.Tiles` fetches a Terrarium tile and decodes the PNG (choose the library here).
+- [x] **6.5 DEM tile fetch and decode**
+  - `Steer.Elevation.Tiles` fetches a Terrarium tile and decodes the PNG with Steer's own decoder, `Steer.Elevation.PNG` (see "Open questions").
   - Terrarium decoding is `(R*256 + G + B/256) - 32768`.
-  - Tiles are cached in memory.
+  - Tiles are cached in memory, in an ETS table of up to 256 tiles (about 50 MB).
 
   *Verify*: an ExUnit test with a fixture tile checks a known pixel's elevation.
 
-- [ ] **6.6 Sample elevation along a line**
-  `Steer.Elevation.sample_line/1` adds points every ~30 m along the line and fills Z from the tiles.
+- [x] **6.6 Sample elevation along a line**
+  `Steer.Elevation.sample_line/1` adds points every ~30 m along the line and fills Z from the zoom 12 tiles (about 26 m pixels at Snoqualmie Pass), fetching the tiles a line crosses concurrently.
   *Verify*: an ExUnit test with a fixture tile gives the expected Z at a known point.
 
-- [ ] **6.7 Straight-line fallback (FR-004)**
-  `Steer.Routing.snap_or_straight/2` falls back to a straight line with DEM-sampled Z whenever BRouter returns an error, and marks the leg `snapped: false`.
+- [x] **6.7 Straight-line fallback (FR-004)**
+  `Steer.Routing.snap_or_straight/2` falls back to a straight line with DEM-sampled Z whenever BRouter returns an error, and marks the leg `snapped: false`. A snapped leg's vertices without elevation get Z from the DEM too.
   *Verify*: ExUnit tests for both paths.
 
 - [ ] **6.8 `POST /api/snap` endpoint**

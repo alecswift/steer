@@ -14,6 +14,10 @@ config :steer,
 # PostGIS geometry types (see lib/steer/postgres_types.ex).
 config :steer, Steer.Repo, types: Steer.PostgresTypes
 
+# The routing engine (see Steer.Routing.BRouter), the `brouter` service in
+# Docker Compose.
+config :steer, Steer.Routing.BRouter, base_url: "http://localhost:17777"
+
 # Configure the endpoint
 config :steer, SteerWeb.Endpoint,
   url: [host: "localhost"],
