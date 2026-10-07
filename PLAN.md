@@ -453,8 +453,8 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
   `Steer.Routing.snap_or_straight/2` falls back to a straight line with DEM-sampled Z whenever BRouter returns an error, and marks the leg `snapped: false`. A snapped leg's vertices without elevation get Z from the DEM too.
   *Verify*: ExUnit tests for both paths.
 
-- [ ] **6.8 `POST /api/snap` endpoint**
-  Takes `{from, to}` and returns a GeoJSON LineString with Z and `properties.snapped`.
+- [x] **6.8 `POST /api/snap` endpoint**
+  Takes `{"from": [lon, lat], "to": [lon, lat]}` and returns a GeoJSON Feature: a LineString with Z, and `properties.snapped`. It answers 400 for a point that isn't a `[lon, lat]` in range, 422 for points more than 50 km apart (`Steer.Routing` refuses them, which bounds BRouter's search and a straight leg's samples and tiles), and 502 when neither BRouter nor the DEM answers. Elevation is the DEM's as-is, so a straight leg over the ocean gets bathymetry (negative Z): routing is for hiking. Each leg returned counts toward `steer.snap.duration_ms`, by `snapped`.
   *Verify*: controller tests. A `curl` near Snoqualmie Pass returns a snapped leg, and one in open ocean returns a straight leg.
 
 **Milestone 6**: `/api/snap` returns trail-snapped legs and falls back to straight lines on its own.

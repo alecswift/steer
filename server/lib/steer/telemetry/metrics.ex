@@ -17,6 +17,8 @@ defmodule Steer.Telemetry.Metrics do
     * `steer.dem.tile_cache`: DEM tile lookups, by `result` (`hit` / `miss`).
     * `steer.snap.fallback`: legs that fell back to a straight line, by
       `reason` (`no_route` / `timeout` / `error`).
+    * `steer.snap.duration_ms`: each leg `POST /api/snap` returns, from the
+      request to the leg, by `snapped`. Its p95 is SC-001's (under 1000 ms).
 
   Prometheus rejects a whole OTLP push when any metric in it has no data
   points, and the SDK exports instruments that haven't recorded anything yet.
@@ -35,7 +37,8 @@ defmodule Steer.Telemetry.Metrics do
   @histograms %{
     "steer.http.request.duration_ms": "Phoenix request duration, by route, method and status",
     "steer.db.query.duration_ms":
-      "Ecto query total time (queue, query and decode), by source table"
+      "Ecto query total time (queue, query and decode), by source table",
+    "steer.snap.duration_ms": "Time to snap or straighten a leg, by snapped"
   }
 
   @counters %{
@@ -107,7 +110,10 @@ defmodule Steer.Telemetry.Metrics do
     })
   end
 
-  defp record(name, value, attrs) do
+  @doc """
+  Records `value` in one of the histograms listed above, with `attrs`.
+  """
+  def record(name, value, attrs) do
     unless :persistent_term.get({__MODULE__, name}, false) do
       Histogram.create(name, %{
         description: Map.fetch!(@histograms, name),

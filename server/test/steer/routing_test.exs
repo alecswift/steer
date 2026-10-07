@@ -81,6 +81,12 @@ defmodule Steer.RoutingTest do
       end
     end
 
+    # No stubs: Req.Test fails any request to BRouter or the tiles.
+    test "refuses points more than 50 km apart" do
+      # About 60 km east of the summit.
+      assert Steer.Routing.snap_or_straight(@summit, [-120.62, 47.45]) == {:error, :too_far}
+    end
+
     test "fails when neither BRouter nor the DEM answers" do
       Req.Test.stub(BRouter, &Req.Test.transport_error(&1, :timeout))
       Req.Test.stub(Tiles, &Req.Test.transport_error(&1, :econnrefused))

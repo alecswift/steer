@@ -57,8 +57,11 @@ defmodule Steer.Elevation do
   defp interpolate([lon1, lat1], [lon2, lat2], t),
     do: [lon1 + (lon2 - lon1) * t, lat1 + (lat2 - lat1) * t]
 
-  # Haversine distance.
-  defp distance_m([lon1, lat1], [lon2, lat2]) do
+  @doc """
+  The great-circle (haversine) distance in meters between two `[lon, lat]`
+  points.
+  """
+  def distance_m([lon1, lat1], [lon2, lat2]) do
     {phi1, phi2} = {radians(lat1), radians(lat2)}
 
     h =

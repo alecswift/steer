@@ -10,5 +10,6 @@ defmodule SteerWeb.Router do
 
     get "/health", HealthController, :show
     resources "/routes", RouteController, except: [:new, :edit]
+    post "/snap", SnapController, :create
   end
 end
