@@ -14,7 +14,7 @@ These were settled while planning and resolve open items in the spec.
 |---|---|
 | Routing engine (FR-012) | **Self-hosted BRouter**, called only by Phoenix through a `Steer.Routing` adapter. The frontend never talks to BRouter directly. |
 | Segment files | **The whole world, downloaded upfront** (about 10 GB) by a one-shot `brouter-segments` compose service, run by hand. Chosen in chunk 6.2. |
-| Elevation source | Snapped legs use **BRouter's Z values**. Straight fallback legs get Z sampled from **AWS Terrarium tiles in Phoenix**. |
+| Elevation source | Snapped legs use **BRouter's Z values**. Straight fallback legs get Z sampled from **AWS Terrarium tiles in Phoenix**, as do the rare snapped vertices BRouter has no elevation for. |
 | Repo layout | `web/` (Vite + React) and `server/` (Phoenix). `docker-compose.yml` at the root. |
 | Local infra | **Docker Compose** runs PostGIS, BRouter and the telemetry stack. Phoenix and Vite run natively. |
 | Telemetry | Telemetry is **central to the project**. **OpenTelemetry** is used everywhere, for structured logs, traces, metrics, product events and errors. The data goes to a **Grafana LGTM** container (Loki, Grafana, Tempo, and Prometheus/Mimir for metrics) in Docker Compose. It starts in Phase 0 (browser) and Phase 2 (Phoenix), and **every chunk after that adds its own telemetry** (see "Telemetry conventions"). The same OpenTelemetry setup can later send to a hosted service by changing an endpoint. |
@@ -449,8 +449,8 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
   `Steer.Elevation.sample_line/1` adds points every ~30 m along the line and fills Z from the zoom 12 tiles (about 26 m pixels at Snoqualmie Pass), fetching the tiles a line crosses concurrently.
   *Verify*: an ExUnit test with a fixture tile gives the expected Z at a known point.
 
-- [ ] **6.7 Straight-line fallback (FR-004)**
-  `Steer.Routing.snap_or_straight/2` falls back to a straight line with DEM-sampled Z whenever BRouter returns an error, and marks the leg `snapped: false`.
+- [x] **6.7 Straight-line fallback (FR-004)**
+  `Steer.Routing.snap_or_straight/2` falls back to a straight line with DEM-sampled Z whenever BRouter returns an error, and marks the leg `snapped: false`. A snapped leg's vertices without elevation get Z from the DEM too.
   *Verify*: ExUnit tests for both paths.
 
 - [ ] **6.8 `POST /api/snap` endpoint**

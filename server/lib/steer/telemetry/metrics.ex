@@ -15,6 +15,8 @@ defmodule Steer.Telemetry.Metrics do
     * `steer.vm.memory_bytes`: BEAM memory, by `kind` (`total`, `processes`,
       `binary`, `ets`, `atom`, `code`).
     * `steer.dem.tile_cache`: DEM tile lookups, by `result` (`hit` / `miss`).
+    * `steer.snap.fallback`: legs that fell back to a straight line, by
+      `reason` (`no_route` / `timeout` / `error`).
 
   Prometheus rejects a whole OTLP push when any metric in it has no data
   points, and the SDK exports instruments that haven't recorded anything yet.
@@ -37,7 +39,8 @@ defmodule Steer.Telemetry.Metrics do
   }
 
   @counters %{
-    "steer.dem.tile_cache": "DEM tile lookups, by result (hit / miss)"
+    "steer.dem.tile_cache": "DEM tile lookups, by result (hit / miss)",
+    "steer.snap.fallback": "Legs that fell back to a straight line, by reason"
   }
 
   @memory_kinds [:total, :processes, :binary, :ets, :atom, :code]
