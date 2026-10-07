@@ -3,6 +3,7 @@ import { editorReducer, initialEditorState, type EditorAction, type LngLat } fro
 import {
   dropStaleLegs,
   emptyLegCache,
+  failLeg,
   legKey,
   requestLegs,
   resolveLeg,
@@ -109,6 +110,30 @@ describe('resolveLeg', () => {
   it("doesn't change the cache it's given", () => {
     const { cache } = requestLegs(emptyLegCache, [a, b])
     resolveLeg(cache, a, b, snapped(a, b))
+    expect(cache.get(legKey(a, b))).toEqual({ status: 'pending' })
+  })
+})
+
+describe('failLeg', () => {
+  it('caches a straight line between the two points', () => {
+    const { cache } = requestLegs(emptyLegCache, [a, b])
+    expect(failLeg(cache, a, b).get(legKey(a, b))).toEqual({ status: 'straight', coordinates: [a, b] })
+  })
+
+  it("doesn't request a failed leg again, so the route keeps growing", () => {
+    const { cache } = requestLegs(emptyLegCache, [a, b])
+    const { requested } = requestLegs(failLeg(cache, a, b), [a, b, c])
+    expect(requested).toEqual([[b, c]])
+  })
+
+  it('draws a failed leg as straight, not pending', () => {
+    const { cache } = requestLegs(emptyLegCache, [a, b])
+    expect(routeLegs(failLeg(cache, a, b), [a, b])).toEqual([{ from: a, to: b, status: 'straight', coordinates: [a, b] }])
+  })
+
+  it("doesn't change the cache it's given", () => {
+    const { cache } = requestLegs(emptyLegCache, [a, b])
+    failLeg(cache, a, b)
     expect(cache.get(legKey(a, b))).toEqual({ status: 'pending' })
   })
 })
