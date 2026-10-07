@@ -14,12 +14,15 @@ defmodule Steer.Telemetry.Metrics do
       (the table, when the query has one).
     * `steer.vm.memory_bytes`: BEAM memory, by `kind` (`total`, `processes`,
       `binary`, `ets`, `atom`, `code`).
+    * `steer.dem.tile_cache`: DEM tile lookups, by `result` (`hit` / `miss`).
 
   Prometheus rejects a whole OTLP push when any metric in it has no data
   points, and the SDK exports instruments that haven't recorded anything yet.
-  So histograms are created on their first recording, not up front.
+  So histograms and counters are created on their first recording, not up
+  front.
   """
 
+  require OpenTelemetryAPIExperimental.Counter, as: Counter
   require OpenTelemetryAPIExperimental.Histogram, as: Histogram
   require OpenTelemetryAPIExperimental.ObservableGauge, as: ObservableGauge
 
@@ -31,6 +34,10 @@ defmodule Steer.Telemetry.Metrics do
     "steer.http.request.duration_ms": "Phoenix request duration, by route, method and status",
     "steer.db.query.duration_ms":
       "Ecto query total time (queue, query and decode), by source table"
+  }
+
+  @counters %{
+    "steer.dem.tile_cache": "DEM tile lookups, by result (hit / miss)"
   }
 
   @memory_kinds [:total, :processes, :binary, :ets, :atom, :code]
@@ -75,6 +82,18 @@ defmodule Steer.Telemetry.Metrics do
   @doc false
   def observe_memory(_args) do
     for kind <- @memory_kinds, do: {:erlang.memory(kind), %{kind: kind}}
+  end
+
+  @doc """
+  Adds 1 to one of the counters listed above, with `attrs`.
+  """
+  def count(name, attrs) do
+    unless :persistent_term.get({__MODULE__, name}, false) do
+      Counter.create(name, %{description: Map.fetch!(@counters, name)})
+      :persistent_term.put({__MODULE__, name}, true)
+    end
+
+    Counter.add(name, 1, attrs)
   end
 
   defp record_request(duration, meta, status) do

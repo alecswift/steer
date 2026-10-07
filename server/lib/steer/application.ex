@@ -13,6 +13,7 @@ defmodule Steer.Application do
       Steer.Repo,
       {DNSCluster, query: Application.get_env(:steer, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Steer.PubSub},
+      Steer.Elevation.Tiles,
       # Start a worker by calling: Steer.Worker.start_link(arg)
       # {Steer.Worker, arg},
       # Start to serve requests, typically the last entry

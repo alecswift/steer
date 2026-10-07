@@ -35,7 +35,7 @@ These were settled while planning and resolve open items in the spec.
 - ~~**Elevation noise** (chunk 3.4)~~: decided. Gain and loss use a 5 m hysteresis.
 - ~~**BRouter Docker image** (chunk 6.1, revised in 6.2)~~: decided. Compose **builds the upstream v1.7.10 release** from its git tag (`build: https://github.com/abrensch/brouter.git#v1.7.10`), natively on Apple Silicon. 6.1 first used `ghcr.io/abrensch/brouter:v1.7.8`, the newest image ghcr.io publishes, but it reads only lookup version 10, and the segment files on brouter.de are now version 11 (v1.7.9 and later). The multi-arch `nightly` tag was passed over because it's unreleased code.
 - ~~**BRouter segment acquisition** (chunk 6.2)~~: decided. The whole world upfront: 1,142 tiles, about 10 GB. BRouter can't download segments on demand itself, and on demand from Phoenix would miss the 1-second budget (SC-001) on the first leg in each new 5° tile. A region list would leave most of the world without snapping (FR-011). A one-shot `brouter-segments` service (`curlimages/curl`, profile `tools`) runs `brouter/download-segments.sh`, so `docker compose up` never starts a 10 GB download by surprise.
-- **PNG decoding in Elixir** (chunk 6.5): pick a library to read Terrarium tiles.
+- ~~**PNG decoding in Elixir** (chunk 6.5)~~: decided. Steer has **its own minimal decoder** (`Steer.Elevation.PNG`): Terrarium tiles are always 8-bit RGB and not interlaced, and Erlang's `:zlib` does the decompression, so there's no native dependency. `stb_image` (a NIF) and `image` (libvips) were passed over as more than this needs.
 
 ### Later (after the MVP)
 
@@ -438,10 +438,10 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
   `snap(from, to) :: {:ok, [[lon, lat, z]]} | {:error, :no_route | :timeout | term}`. Parse BRouter's GeoJSON and set a timeout that fits the 1-second budget (700 ms, with no retry). BRouter answers 400 with "not mapped", "no track found" or "island detected" when there's no route. Where BRouter has no elevation data, a vertex comes back as `[lon, lat]`.
   *Verify*: ExUnit tests with a stubbed HTTP client (Req.Test) cover success, no route, and timeout.
 
-- [ ] **6.5 DEM tile fetch and decode**
-  - `Steer.Elevation.Tiles` fetches a Terrarium tile and decodes the PNG (choose the library here).
+- [x] **6.5 DEM tile fetch and decode**
+  - `Steer.Elevation.Tiles` fetches a Terrarium tile and decodes the PNG with Steer's own decoder, `Steer.Elevation.PNG` (see "Open questions").
   - Terrarium decoding is `(R*256 + G + B/256) - 32768`.
-  - Tiles are cached in memory.
+  - Tiles are cached in memory, in an ETS table of up to 256 tiles (about 50 MB).
 
   *Verify*: an ExUnit test with a fixture tile checks a known pixel's elevation.
 
