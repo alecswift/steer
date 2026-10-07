@@ -54,7 +54,8 @@ defmodule Steer.MixProject do
       {:opentelemetry_bandit, "~> 0.3.0"},
       {:opentelemetry_ecto, "~> 1.2"},
       {:opentelemetry_experimental, "~> 0.6.0"},
-      {:logger_json, "~> 7.0"}
+      {:logger_json, "~> 7.0"},
+      {:req, "~> 0.7.4"}
     ]
   end
 

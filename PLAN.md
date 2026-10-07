@@ -70,7 +70,7 @@ These were settled while planning and resolve open items in the spec.
 | `route.shown` | event | `route_id`, `select_to_fit_ms`: from the `route.selected` click until the map first shows the route and starts framing it. The **SC-003** panels (p95 under 100 ms) read it from Loki, like SC-006 | 4.3 |
 | `editor.opened` | event | `mode` (new / existing) | 5.1, 9.2 |
 | `editor.point_added`, `editor.undo`, `editor.redo`, `editor.cleared`, `editor.loop_closed` | events | `point_count` | 5.3, 5.4 |
-| BRouter call | span | status, `no_route`, duration | 6.4 |
+| `steer.routing.brouter` | span | `http.response.status_code`, `no_route`; error status on failures other than no route | 6.4 |
 | `steer.snap.fallback` | counter | `reason` (no_route / timeout / error) | 6.7 |
 | `steer.dem.tile_cache` | counter | `result` (hit / miss) | 6.5 |
 | `steer.snap.duration_ms` | histogram (server and client) | `snapped`; **SC-001** panel, p95 under 1000 ms | 6.8, 7.3 |
@@ -434,8 +434,8 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
   The stock `hiking-mountain` profile, with its `path_preference` raised from 0 to 10 by a `profile:path_preference=10` request parameter, so no custom profile file is needed. It adds 10 to the cost factor of every way that isn't a path, footway, track or road, so trails beat roads. On the pairs checked near Snoqualmie Pass, any value from 3 to 20 gave the same routes.
   *Verify*: for a known pair of points with both a trail and a road between them, the result follows the trail (SC-005). From the Pacific Crest Trail access at Snoqualmie Pass (-121.4133, 47.42769) to the Source Lake Trail (-121.45167, 47.45762), the stock profile walks 2.4 km of Alpental Road and the tuned one stays on trails (7.5 km, 14 m of road).
 
-- [ ] **6.4 `Steer.Routing` behaviour and BRouter adapter**
-  `snap(from, to) :: {:ok, [[lon, lat, z]]} | {:error, :no_route | :timeout | term}`. Parse BRouter's GeoJSON and set a timeout that fits the 1-second budget.
+- [x] **6.4 `Steer.Routing` behaviour and BRouter adapter**
+  `snap(from, to) :: {:ok, [[lon, lat, z]]} | {:error, :no_route | :timeout | term}`. Parse BRouter's GeoJSON and set a timeout that fits the 1-second budget (700 ms, with no retry). BRouter answers 400 with "not mapped", "no track found" or "island detected" when there's no route. Where BRouter has no elevation data, a vertex comes back as `[lon, lat]`.
   *Verify*: ExUnit tests with a stubbed HTTP client (Req.Test) cover success, no route, and timeout.
 
 - [ ] **6.5 DEM tile fetch and decode**
