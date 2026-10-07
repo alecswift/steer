@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { LngLat } from './editor'
-import { snapLeg } from './snap'
+import { SnapError, snapLeg } from './snap'
 
 const from: LngLat = [-121.4133, 47.42769]
 const to: LngLat = [-121.45167, 47.45762]
@@ -79,16 +79,34 @@ describe('snapLeg', () => {
     { ...leg, properties: { snapped: 'true' } },
   ])('rejects a successful response that isn\'t a leg: %j', async (body) => {
     mockFetch(Response.json(body))
-    await expect(snapLeg(from, to)).rejects.toThrow('POST /api/snap returned an invalid leg')
+    const request = snapLeg(from, to)
+    await expect(request).rejects.toThrow('POST /api/snap returned an invalid leg')
+    await expect(request).rejects.toMatchObject({ reason: 'server' })
   })
 
-  it.each([400, 422, 502])('throws when the server responds with %i', async (status) => {
+  it('rejects a successful response that isn\'t JSON as a server failure', async () => {
+    mockFetch(new Response('<html>', { status: 200 }))
+    await expect(snapLeg(from, to)).rejects.toMatchObject({ name: 'SnapError', reason: 'server' })
+  })
+
+  it.each([400, 422, 502])('throws a server failure when Phoenix responds with %i', async (status) => {
     mockFetch(Response.json({ errors: { detail: 'nope' } }, { status }))
-    await expect(snapLeg(from, to)).rejects.toThrow(`POST /api/snap failed with status ${status}`)
+    const request = snapLeg(from, to)
+    await expect(request).rejects.toThrow(`POST /api/snap failed with status ${status}`)
+    await expect(request).rejects.toBeInstanceOf(SnapError)
+    await expect(request).rejects.toMatchObject({ reason: 'server' })
   })
 
-  it('rejects when the network fails', async () => {
+  it('throws a network failure when a proxy answers because Phoenix is down', async () => {
+    // The Vite dev server's proxy answers this way when Phoenix isn't running.
+    mockFetch(new Response(null, { status: 502, headers: { 'Content-Type': 'text/plain' } }))
+    await expect(snapLeg(from, to)).rejects.toMatchObject({ name: 'SnapError', reason: 'network' })
+  })
+
+  it('throws a network failure when the network fails', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
-    await expect(snapLeg(from, to)).rejects.toThrow('Failed to fetch')
+    const request = snapLeg(from, to)
+    await expect(request).rejects.toThrow('Failed to fetch')
+    await expect(request).rejects.toMatchObject({ name: 'SnapError', reason: 'network' })
   })
 })

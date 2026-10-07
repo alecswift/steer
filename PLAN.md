@@ -73,8 +73,9 @@ These were settled while planning and resolve open items in the spec.
 | `steer.routing.brouter` | span | `http.response.status_code`, `no_route`; error status on failures other than no route | 6.4 |
 | `steer.snap.fallback` | counter | `reason` (no_route / timeout / error) | 6.7 |
 | `steer.dem.tile_cache` | counter | `result` (hit / miss) | 6.5 |
-| `steer.snap.duration_ms` | histogram (server and client) | `snapped`; **SC-001** panel, p95 under 1000 ms | 6.8, 7.3 |
-| `snap.failed` | event | `reason` (network / server) | 7.4 |
+| `steer.snap.duration_ms` | histogram (server and client) | `snapped`; told apart by `service_name`. The client's runs from adding a point until its leg arrives | 6.8, 7.3 |
+| `snap.completed` | event | `duration_ms`, `snapped`: the client's `steer.snap.duration_ms` value. The **SC-001** panels (p95 under 1000 ms) read it from Loki, like SC-006 | 7.3 |
+| `snap.failed` | event | `reason`: `network` when Phoenix wasn't reached (a fetch error, or a proxy's non-JSON error response), `server` when it answered with an error or a response that isn't a leg | 7.4 |
 | `route.saved` | event | `mode` (new / existing), `named` (true/false), `distance_mi`, `leg_count`, `straight_leg_count` | 8.3, 9.3 |
 | `steer.editor.time_to_save_s` | histogram | from `editor.opened` to `route.saved`; **SC-002** panel, under 120 s | 8.3 |
 | `route.save_failed` | error event | `reason` | 8.3 |
@@ -471,13 +472,17 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
   Leg geometry lives outside the undo history, in a map keyed by the from/to coordinates, with a status of `pending | snapped | straight` (`features/routes/legCache.ts`, pure functions that return a new map). Undo and redo reuse cached legs and never request them again. A pending leg the waypoints no longer use (after an undo or a clear) is dropped, so its request can be aborted (7.3) and a redo asks for it again; finished legs stay cached.
   *Verify*: Vitest tests for cache hits across undo and redo.
 
-- [ ] **7.3 Optimistic snapping** *(UI)*
-  A new leg (including the close-loop leg) draws as a dashed straight line right away, then is swapped for the snapped geometry when the response arrives. Stale requests are aborted when you undo or clear.
+- [x] **7.3 Optimistic snapping** *(UI)*
+  A new leg (including the close-loop leg) draws as a faded dashed straight line right away, then is swapped for the snapped geometry when the response arrives: solid and as wide as a saved route, or a full-strength dashed line when Phoenix fell back to straight. Stale requests are aborted when you undo or clear, and a response that arrives after its leg was dropped is ignored. `LegSnapper` (`features/routes/legSnapper.ts`, no React) runs the requests against the leg cache, and `useEditorLegs` wires it to the editor, forgetting the legs on leaving edit mode. The SC-001 panels are on the Steer dashboard.
   *Verify*: clicking along trails near Snoqualmie Pass (e.g. the PCT toward Kendall Katwalk) shows legs following them in under 1 s (SC-001, checked in devtools).
 
-- [ ] **7.4 Snap failures**
-  If `/api/snap` itself fails (Phoenix is down or there's a network error), the leg stays straight with status `straight` and no progress is lost.
+- [x] **7.4 Snap failures**
+  If `/api/snap` itself fails (Phoenix is down or there's a network error), the leg stays straight with status `straight` (`failLeg`) and no progress is lost. It isn't requested again, even on undo and redo. `snapLeg` throws a `SnapError` with the `snap.failed` reason.
   *Verify*: stop Phoenix, click points, and check that the route keeps growing with straight legs.
+
+- [x] **7.5 Live stats while editing** *(UI, added after planning; SPEC.md lists live stats as out of scope for the MVP)*
+  The edit toolbar shows the route's distance, gain and loss once it has a leg (`features/routes/routeStats.ts`). They wait, as dashes, until every leg has its geometry with elevation, so a leg still pending or one that fell back in the browser (7.4, no Z) shows no stats rather than a guess. The legs are joined as Phoenix joins them on save, and gain and loss use the same 5 m hysteresis as `Steer.Routes.Stats`, so they match the saved route; distance is measured on a sphere, within about 0.5% of PostGIS. No telemetry: it adds no user action.
+  *Verify*: Vitest tests, including the server's own gain and loss cases. Build a route near Snoqualmie Pass, save it (Phase 8), and compare the toolbar's stats with the saved route's.
 
 **Milestone 7**: US2 is done. You can build routes snapped to trails, with a fallback.
 

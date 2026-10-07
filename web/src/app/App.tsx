@@ -1,4 +1,5 @@
 import { EditToolbar } from '@/features/routes/EditToolbar'
+import { useEditorLegs } from '@/features/routes/useEditorLegs'
 import { useRoutes } from '@/features/routes/useRoutes'
 import { MapView } from './MapView'
 import { Sidebar } from './Sidebar'
@@ -14,6 +15,8 @@ function App() {
   const routes = useRoutes()
   const { selection, selectPeak, clearPeak, selectRoute } = useSelection()
   const { mode, createRoute, leaveEditMode, edit } = useMode()
+  const editWaypoints = mode.name === 'edit' ? mode.editor.present.waypoints : null
+  const editLegs = useEditorLegs(editWaypoints)
   const selectedRoute =
     routes && 'routes' in routes ? (routes.routes.find((route) => route.id === selection.selectedRoute?.id) ?? null) : null
 
@@ -30,14 +33,15 @@ function App() {
         <MapView
           route={selectedRoute}
           selectedRoute={selection.selectedRoute}
-          editWaypoints={mode.name === 'edit' ? mode.editor.present.waypoints : null}
+          editWaypoints={editWaypoints}
+          editLegs={editLegs}
           onPeakClick={selectPeak}
           onEmptyClick={clearPeak}
           onAddPoint={(point) => edit({ type: 'ADD_POINT', point })}
         />
       </main>
       {mode.name === 'edit' ? (
-        <EditToolbar editor={mode.editor} onAction={edit} onCancel={leaveEditMode} />
+        <EditToolbar editor={mode.editor} legs={editLegs} onAction={edit} onCancel={leaveEditMode} />
       ) : (
         <Sidebar
           routes={routes}

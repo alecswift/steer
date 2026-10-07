@@ -1,18 +1,25 @@
 import { useMemo } from 'react'
 import { Layer, Source } from 'react-map-gl/maplibre'
 import type { LngLat } from './editor'
-import { editorLegLayerStyle, editorSourceId, editorWaypointLayerStyle } from './editor.style'
+import {
+  editorSnappedLegLayerStyle,
+  editorSourceId,
+  editorStraightLegLayerStyle,
+  editorWaypointLayerStyle,
+} from './editor.style'
 import { editorFeatures } from './editorFeatures'
+import type { RouteLeg } from './legCache'
 
-type Props = { waypoints: LngLat[] }
+type Props = { waypoints: LngLat[]; legs: RouteLeg[] }
 
-/** Draws the route being edited: its straight legs, with its waypoints on top. */
-export function EditorLayer({ waypoints }: Props) {
-  const data = useMemo(() => editorFeatures(waypoints), [waypoints])
+/** Draws the route being edited: its snapped and straight legs, with its waypoints on top. */
+export function EditorLayer({ waypoints, legs }: Props) {
+  const data = useMemo(() => editorFeatures(waypoints, legs), [waypoints, legs])
 
   return (
     <Source id={editorSourceId} type="geojson" data={data}>
-      <Layer {...editorLegLayerStyle} />
+      <Layer {...editorSnappedLegLayerStyle} />
+      <Layer {...editorStraightLegLayerStyle} />
       <Layer {...editorWaypointLayerStyle} />
     </Source>
   )

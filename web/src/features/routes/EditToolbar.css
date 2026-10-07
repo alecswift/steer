@@ -27,6 +27,37 @@
   color: var(--color-text-muted);
 }
 
+/* Distance, gain and loss in one row, set like the route panel's stats
+   (see RoutePanel.css) but a step smaller, since the tools are the
+   toolbar's main content. */
+.edit-toolbar-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  margin: var(--space-4) 0 0;
+}
+
+.edit-toolbar-stats dt {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.edit-toolbar-stats dd {
+  margin: 0;
+  font-size: var(--text-lg);
+  line-height: var(--leading-tight);
+}
+
+.edit-toolbar-value {
+  font-weight: var(--weight-semibold);
+}
+
+.edit-toolbar-unit {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
+}
+
 /* One row of four, each tool its icon over its name. Tools pull out by
    their own padding, like the sidebar's rows, so the first icon lines up
    with the title. */

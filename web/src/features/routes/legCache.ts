@@ -66,6 +66,17 @@ export function resolveLeg(cache: LegCache, from: LngLat, to: LngLat, leg: Snapp
 }
 
 /**
+ * Caches the leg from `from` to `to` as a straight line, for when the snap
+ * request itself failed (FR-004). It stays straight: the leg isn't requested
+ * again, so the route keeps growing while Phoenix is unreachable.
+ */
+export function failLeg(cache: LegCache, from: LngLat, to: LngLat): LegCache {
+  const next = new Map(cache)
+  next.set(legKey(from, to), { status: 'straight', coordinates: [from, to] })
+  return next
+}
+
+/**
  * Drops the pending legs that `waypoints` no longer uses (after an undo or a
  * clear), so their requests can be aborted and a redo requests them again.
  * Returns the dropped keys. Finished legs stay cached for undo and redo.

@@ -8,6 +8,7 @@ import { peakLayerId } from '@/features/peaks/peaks.style'
 import type { Route } from '@/features/routes/api'
 import type { LngLat } from '@/features/routes/editor'
 import { EditorLayer } from '@/features/routes/EditorLayer'
+import type { RouteLeg } from '@/features/routes/legCache'
 import { RouteLayer } from '@/features/routes/RouteLayer'
 import { ContourLayer } from '@/features/terrain/ContourLayer'
 import { HillshadeLayer } from '@/features/terrain/HillshadeLayer'
@@ -65,6 +66,8 @@ type Props = {
   selectedRoute: SelectedRoute | null
   // The route being edited, or null in view mode.
   editWaypoints: LngLat[] | null
+  // Its legs, snapped or straight.
+  editLegs: RouteLeg[]
   // `at` is the click's DOM timestamp, on the performance.now() timeline.
   onPeakClick: (peak: Peak, at: number) => void
   onEmptyClick: () => void
@@ -76,7 +79,15 @@ type Props = {
  * being edited in edit mode. In view mode, forwards peak or empty-map clicks
  * to the selection callbacks; in edit mode, every click adds a point.
  */
-export function MapView({ route, selectedRoute, editWaypoints, onPeakClick, onEmptyClick, onAddPoint }: Props) {
+export function MapView({
+  route,
+  selectedRoute,
+  editWaypoints,
+  editLegs,
+  onPeakClick,
+  onEmptyClick,
+  onAddPoint,
+}: Props) {
   const [hovering, setHovering] = useState(false)
   const editing = editWaypoints !== null
 
@@ -129,7 +140,7 @@ export function MapView({ route, selectedRoute, editWaypoints, onPeakClick, onEm
       />
       <PeakLayer />
       {/* Over the peaks, so the points you place are never hidden. */}
-      {editing && <EditorLayer waypoints={editWaypoints} />}
+      {editing && <EditorLayer waypoints={editWaypoints} legs={editLegs} />}
     </Map>
   )
 }

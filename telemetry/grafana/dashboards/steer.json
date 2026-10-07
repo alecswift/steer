@@ -306,11 +306,95 @@
       "options": { "legend": { "displayMode": "hidden", "placement": "bottom" }, "tooltip": { "mode": "single" } }
     },
     {
+      "id": 15,
+      "type": "stat",
+      "title": "Snap latency (SC-001)",
+      "description": "Time from adding a point in the editor until its leg arrives from POST /api/snap, snapped or straight, over the selected time range. SC-001 target: p95 under 1000 ms. From snap.completed events; the browser's steer.snap.duration_ms histogram carries the same values. Requests that failed are counted as snap.failed instead.",
+      "gridPos": { "x": 0, "y": 26, "w": 12, "h": 6 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "queryType": "instant",
+          "expr": "quantile_over_time(0.5, {service_name=\"steer-frontend\"} | event_name=\"snap.completed\" | unwrap duration_ms [$__range]) by (service_name)",
+          "legendFormat": "p50"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "queryType": "instant",
+          "expr": "quantile_over_time(0.95, {service_name=\"steer-frontend\"} | event_name=\"snap.completed\" | unwrap duration_ms [$__range]) by (service_name)",
+          "legendFormat": "p95"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "decimals": 0,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1000 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+      }
+    },
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "Snap latency p95, browser and Phoenix",
+      "description": "p95 of steer.snap.duration_ms as the browser sees it (including the network) and as Phoenix measures it (BRouter or the DEM fallback). The line marks the 1000 ms SC-001 target. The browser histogram misses the first leg of each page load.",
+      "gridPos": { "x": 12, "y": 26, "w": 12, "h": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, sum by (le, service_name) (rate(steer_snap_duration_ms_bucket{service_name=~\"steer-frontend|steer-backend\"}[$__rate_interval])))",
+          "legendFormat": "{{service_name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "transparent", "value": null },
+              { "color": "red", "value": 1000 }
+            ]
+          },
+          "custom": {
+            "showPoints": "never",
+            "spanNulls": true,
+            "thresholdsStyle": { "mode": "line" }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      }
+    },
+    {
       "id": 5,
       "type": "logs",
       "title": "Recent frontend errors",
       "description": "Uncaught errors, unhandled rejections and React render errors. Expand a line for its stack trace and session ID; the trace_id links to Tempo.",
-      "gridPos": { "x": 0, "y": 26, "w": 24, "h": 10 },
+      "gridPos": { "x": 0, "y": 32, "w": 24, "h": 10 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
@@ -334,7 +418,7 @@
       "type": "row",
       "title": "Backend (steer-backend)",
       "collapsed": false,
-      "gridPos": { "x": 0, "y": 36, "w": 24, "h": 1 },
+      "gridPos": { "x": 0, "y": 42, "w": 24, "h": 1 },
       "panels": []
     },
     {
@@ -342,7 +426,7 @@
       "type": "timeseries",
       "title": "Request rate by route",
       "description": "Phoenix requests per second, by route and status. Requests that match no route aren't counted.",
-      "gridPos": { "x": 0, "y": 37, "w": 12, "h": 8 },
+      "gridPos": { "x": 0, "y": 43, "w": 12, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
@@ -363,7 +447,7 @@
       "type": "timeseries",
       "title": "Request duration by route",
       "description": "p50 and p95 Phoenix request duration, by route.",
-      "gridPos": { "x": 12, "y": 37, "w": 12, "h": 8 },
+      "gridPos": { "x": 12, "y": 43, "w": 12, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
@@ -390,7 +474,7 @@
       "type": "timeseries",
       "title": "Database query time",
       "description": "p50 and p95 Ecto query total time (queue, query and decode), by source table. Raw SQL, such as the health check's SELECT 1, has no table.",
-      "gridPos": { "x": 0, "y": 45, "w": 12, "h": 8 },
+      "gridPos": { "x": 0, "y": 51, "w": 12, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
@@ -417,7 +501,7 @@
       "type": "timeseries",
       "title": "BEAM memory",
       "description": "Memory the Phoenix VM uses, by kind.",
-      "gridPos": { "x": 12, "y": 45, "w": 12, "h": 8 },
+      "gridPos": { "x": 12, "y": 51, "w": 12, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
