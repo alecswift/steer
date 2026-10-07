@@ -16,6 +16,12 @@ defmodule Steer.Routing do
 
   @adapter Steer.Routing.BRouter
 
+  # Far longer than a leg between two clicks on a hike. The cap bounds the
+  # engine's search, and the samples and tiles of a straight fallback leg,
+  # which would otherwise grow with the leg (a leg across the world would
+  # be about 670,000 samples in thousands of tiles).
+  @max_leg_m 50_000
+
   @typedoc "A clicked point, `[lon, lat]`."
   @type point :: [number()]
 
@@ -36,13 +42,20 @@ defmodule Steer.Routing do
   @doc """
   Snaps the leg from one point to the other, or falls back to a straight
   line with Z from the DEM whenever the routing engine fails (FR-004).
-  Returns `{:ok, %{coordinates: [[lon, lat, z]], snapped: boolean}}`, or
+  Returns `{:ok, %{coordinates: [[lon, lat, z]], snapped: boolean}}`,
+  `{:error, :too_far}` when the points are more than #{div(@max_leg_m, 1000)} km apart, or
   `{:error, reason}` when the DEM can't be read either.
 
   A snapped leg keeps the engine's Z values, and takes the DEM's where the
   engine has none.
   """
   def snap_or_straight(from, to) do
+    if Elevation.distance_m(from, to) > @max_leg_m,
+      do: {:error, :too_far},
+      else: snap_or_sample(from, to)
+  end
+
+  defp snap_or_sample(from, to) do
     case @adapter.snap(from, to) do
       {:ok, line} ->
         with {:ok, coordinates} <- Elevation.fill_z(line),
