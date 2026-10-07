@@ -463,12 +463,12 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
 
 ## Phase 7: Snapping in the editor (US2 complete)
 
-- [ ] **7.1 Snap client**
-  `api/snap.ts` with `AbortController` support.
+- [x] **7.1 Snap client**
+  `snapLeg(from, to, signal?)` in `features/routes/snap.ts`, next to the routes API, with `AbortController` support. It returns `{coordinates, snapped}`, throws on an error status or a response that isn't a leg, and rejects with an `AbortError` when aborted.
   *Verify*: a Vitest test with mocked `fetch`.
 
-- [ ] **7.2 Leg cache**
-  Leg geometry lives outside the undo history, in a map keyed by the from/to coordinates, with a status of `pending | snapped | straight`. Undo and redo reuse cached legs and never request them again.
+- [x] **7.2 Leg cache**
+  Leg geometry lives outside the undo history, in a map keyed by the from/to coordinates, with a status of `pending | snapped | straight` (`features/routes/legCache.ts`, pure functions that return a new map). Undo and redo reuse cached legs and never request them again. A pending leg the waypoints no longer use (after an undo or a clear) is dropped, so its request can be aborted (7.3) and a redo asks for it again; finished legs stay cached.
   *Verify*: Vitest tests for cache hits across undo and redo.
 
 - [ ] **7.3 Optimistic snapping** *(UI)*

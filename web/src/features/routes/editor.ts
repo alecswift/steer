@@ -1,6 +1,6 @@
 // The route editor's undo history: pure state and a reducer, with no React.
-// Only the waypoints are in the history. Leg geometry will live outside it
-// (7.2), so undo and redo never ask for a leg again.
+// Only the waypoints are in the history. Leg geometry lives outside it, in
+// the leg cache (legCache.ts), so undo and redo never ask for a leg again.
 
 // `[lon, lat]`, as MapLibre gives a click's position.
 export type LngLat = [number, number]
