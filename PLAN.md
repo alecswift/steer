@@ -445,8 +445,8 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
 
   *Verify*: an ExUnit test with a fixture tile checks a known pixel's elevation.
 
-- [ ] **6.6 Sample elevation along a line**
-  `Steer.Elevation.sample_line/1` adds points every ~30 m along the line and fills Z from the tiles.
+- [x] **6.6 Sample elevation along a line**
+  `Steer.Elevation.sample_line/1` adds points every ~30 m along the line and fills Z from the zoom 12 tiles (about 26 m pixels at Snoqualmie Pass), fetching the tiles a line crosses concurrently.
   *Verify*: an ExUnit test with a fixture tile gives the expected Z at a known point.
 
 - [ ] **6.7 Straight-line fallback (FR-004)**
