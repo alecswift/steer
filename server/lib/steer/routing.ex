@@ -22,6 +22,11 @@ defmodule Steer.Routing do
   # be about 670,000 samples in thousands of tiles).
   @max_leg_m 50_000
 
+  @doc """
+  The longest leg, in meters, that's snapped or sampled along its length.
+  """
+  def max_leg_m, do: @max_leg_m
+
   @typedoc "A clicked point, `[lon, lat]`."
   @type point :: [number()]
 

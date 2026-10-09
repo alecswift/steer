@@ -33,6 +33,19 @@ export function isLoopClosed(waypoints: LngLat[]): boolean {
   return first[0] === last[0] && first[1] === last[1]
 }
 
+/**
+ * Whether the route differs from the waypoints the editor was opened with,
+ * so leaving would lose changes (FR-007). Undoing back to them makes it clean
+ * again.
+ */
+export function isDirty(state: EditorState, openedWith: LngLat[]): boolean {
+  const { waypoints } = state.present
+  return (
+    waypoints.length !== openedWith.length ||
+    waypoints.some(([lon, lat], i) => lon !== openedWith[i][0] || lat !== openedWith[i][1])
+  )
+}
+
 export const canUndo = (state: EditorState) => state.past.length > 0
 export const canRedo = (state: EditorState) => state.future.length > 0
 export const canClear = (state: EditorState) => state.present.waypoints.length > 0
