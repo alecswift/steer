@@ -6,6 +6,7 @@ import {
   canUndo,
   editorReducer,
   initialEditorState,
+  isDirty,
   isLoopClosed,
   type EditorAction,
   type EditorState,
@@ -187,5 +188,35 @@ describe('editorReducer', () => {
     it('is true when the route ends at its start', () => {
       expect(isLoopClosed([a, b, c, a])).toBe(true)
     })
+  })
+})
+
+describe('isDirty', () => {
+  it('is clean as opened, for a new route', () => {
+    expect(isDirty(initialEditorState, [])).toBe(false)
+  })
+
+  it('is dirty once a point is added', () => {
+    expect(isDirty(run(add(a)), [])).toBe(true)
+  })
+
+  it('is clean again after undoing back to where it opened', () => {
+    expect(isDirty(run(add(a), add(b), undo, undo), [])).toBe(false)
+  })
+
+  it('is clean after clearing a new route, since nothing is lost', () => {
+    expect(isDirty(run(add(a), add(b), clear), [])).toBe(false)
+  })
+
+  it('compares against the waypoints it opened with, e.g. a saved route (9.2)', () => {
+    const opened = run(add(a), add(b))
+    expect(isDirty(opened, [a, b])).toBe(false)
+    expect(isDirty(editorReducer(opened, add(c)), [a, b])).toBe(true)
+    expect(isDirty(run(add(a), add(c)), [a, b])).toBe(true)
+    expect(isDirty(editorReducer(opened, clear), [a, b])).toBe(true)
+  })
+
+  it('compares by value, not by reference', () => {
+    expect(isDirty(run(add([...a]), add([...d])), [a, d])).toBe(false)
   })
 })

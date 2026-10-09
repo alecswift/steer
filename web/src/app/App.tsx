@@ -1,6 +1,9 @@
+import type { Route } from '@/features/routes/api'
+import { isDirty } from '@/features/routes/editor'
 import { EditToolbar } from '@/features/routes/EditToolbar'
 import { useEditorLegs } from '@/features/routes/useEditorLegs'
 import { useRoutes } from '@/features/routes/useRoutes'
+import { useUnsavedChangesWarning } from '@/features/routes/useUnsavedChangesWarning'
 import { MapView } from './MapView'
 import { Sidebar } from './Sidebar'
 import { useMode } from './useMode'
@@ -12,11 +15,13 @@ import './App.css'
  * mode, sharing the saved routes, the peak and route selection, and the mode.
  */
 function App() {
-  const routes = useRoutes()
+  const { routes, addRoute } = useRoutes()
   const { selection, selectPeak, clearPeak, selectRoute } = useSelection()
   const { mode, createRoute, leaveEditMode, edit } = useMode()
   const editWaypoints = mode.name === 'edit' ? mode.editor.present.waypoints : null
   const editLegs = useEditorLegs(editWaypoints)
+  const unsaved = mode.name === 'edit' && isDirty(mode.editor, mode.openedWith)
+  useUnsavedChangesWarning(unsaved)
   const selectedRoute =
     routes && 'routes' in routes ? (routes.routes.find((route) => route.id === selection.selectedRoute?.id) ?? null) : null
 
@@ -25,6 +30,14 @@ function App() {
   function handleCreateRoute() {
     clearPeak()
     createRoute()
+  }
+
+  // Back in view mode, the new route is listed and selected, so it's drawn
+  // and framed with its stats in the sidebar.
+  function handleSaved(route: Route) {
+    addRoute(route)
+    leaveEditMode()
+    selectRoute(route.id, performance.now())
   }
 
   return (
@@ -41,7 +54,15 @@ function App() {
         />
       </main>
       {mode.name === 'edit' ? (
-        <EditToolbar editor={mode.editor} legs={editLegs} onAction={edit} onCancel={leaveEditMode} />
+        <EditToolbar
+          editor={mode.editor}
+          legs={editLegs}
+          unsaved={unsaved}
+          openedAt={mode.openedAt}
+          onAction={edit}
+          onLeave={leaveEditMode}
+          onSaved={handleSaved}
+        />
       ) : (
         <Sidebar
           routes={routes}

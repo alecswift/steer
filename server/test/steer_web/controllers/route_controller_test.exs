@@ -87,6 +87,15 @@ defmodule SteerWeb.RouteControllerTest do
                json_response(conn, 201)
     end
 
+    test "is a 502 when a leg needs Z and the DEM can't be read", %{conn: conn} do
+      Req.Test.stub(Steer.Elevation.Tiles, &Plug.Conn.send_resp(&1, 503, ""))
+      # In a tile no other test fetches, so it can't be cached already.
+      leg = %{"coordinates" => [[20.0, 20.0], [20.001, 20.0]], "snapped" => false}
+      conn = post(conn, ~p"/api/routes", Map.put(@params, "legs", [leg]))
+
+      assert %{"errors" => %{"detail" => _}} = json_response(conn, 502)
+    end
+
     test "is a 422 with the errors for an invalid route", %{conn: conn} do
       conn = post(conn, ~p"/api/routes", Map.put(@params, "legs", []))
 

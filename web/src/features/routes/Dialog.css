@@ -1,0 +1,171 @@
+/* Modal dialogs, on the raised surface used for dialogs (see web/DESIGN.md),
+   over a light ink wash that keeps the map in view behind them. */
+.dialog {
+  box-sizing: border-box;
+  width: min(26rem, calc(100vw - 2 * var(--space-4)));
+  margin: auto;
+  padding: var(--space-5);
+  background: var(--color-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2);
+  color: var(--color-text);
+  font: inherit;
+  line-height: var(--leading-body);
+}
+
+.dialog::backdrop {
+  background: rgba(30, 42, 38, 0.32);
+}
+
+/* Opening answers the click that asked for it: a short rise into place. */
+.dialog[open] {
+  animation: dialog-open 160ms ease-out;
+}
+
+@keyframes dialog-open {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-2));
+  }
+}
+
+.dialog-title {
+  margin: 0;
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+}
+
+.dialog-body {
+  margin: var(--space-3) 0 0;
+  color: var(--color-text-muted);
+}
+
+.dialog-field {
+  display: grid;
+  gap: var(--space-1);
+  margin-top: var(--space-4);
+}
+
+.dialog-label {
+  font-weight: var(--weight-semibold);
+}
+
+.dialog-optional {
+  font-weight: var(--weight-regular);
+  color: var(--color-text-muted);
+}
+
+.dialog-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.dialog-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.dialog-hint {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.dialog-nowrap {
+  white-space: nowrap;
+}
+
+/* Progress and errors, announced as they change. Empty takes no space. */
+.dialog-status {
+  margin: var(--space-4) 0 0;
+  font-size: var(--text-sm);
+}
+
+.dialog-status:empty {
+  display: none;
+}
+
+.dialog-status--error {
+  color: var(--color-danger);
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+}
+
+.dialog-button {
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+  transition: background-color 120ms ease-out;
+}
+
+.dialog-button:hover:enabled {
+  background: var(--color-surface);
+}
+
+.dialog-button--primary,
+.dialog-button--danger {
+  border-color: transparent;
+}
+
+.dialog-button--primary {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+/* Danger is dark red on the light panel and light coral on the dark one,
+   so the panel's own background reads on it in both. */
+.dialog-button--danger {
+  background: var(--color-danger);
+  color: var(--color-bg);
+}
+
+.dialog-button--primary:hover:enabled,
+.dialog-button--danger:hover:enabled {
+  filter: brightness(1.1);
+}
+
+.dialog-button--primary:hover:enabled {
+  background: var(--color-primary);
+}
+
+.dialog-button--danger:hover:enabled {
+  background: var(--color-danger);
+}
+
+.dialog-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.dialog-input:focus-visible,
+.dialog-button:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialog[open] {
+    animation: none;
+  }
+
+  .dialog-button {
+    transition: none;
+  }
+}

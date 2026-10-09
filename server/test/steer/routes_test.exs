@@ -125,11 +125,12 @@ defmodule Steer.RoutesTest do
 
     test "rejects malformed legs" do
       message =
-        "must each have a boolean snapped and at least 2 [lon, lat, z] coordinates in range"
+        "must each have a boolean snapped and at least 2 [lon, lat, z] or [lon, lat] coordinates in range"
 
       for bad <- [
             leg([[0.0, 0.0, 100]]),
-            leg([[0.0, 0.0], [0.01, 0.0]]),
+            leg([[0.0, 0.0, 100], [0.01]]),
+            leg([[0.0, 0.0, 100], [0.01, 0.0, 100, 1]]),
             leg([[0.0, 0.0, 100], [0.01, 0.0, "high"]]),
             leg([[0.0, 0.0, 100], [181.0, 0.0, 100]]),
             leg([[0.0, 0.0, 100], [0.0, -91.0, 100]]),
@@ -139,6 +140,75 @@ defmodule Steer.RoutesTest do
         assert {:error, changeset} = Routes.build(%{"waypoints" => [@a, @b], "legs" => [bad]})
         assert %{legs: [^message]} = errors_on(changeset)
       end
+    end
+  end
+
+  describe "build/1 with legs missing Z" do
+    # The zoom 12 Terrarium tile with the summit of Snoqualmie Mountain in it,
+    # and two pixel centers in it with their elevations (see
+    # Steer.ElevationTest). Tests here stub the tile rather than expect it,
+    # since another test may already have cached it.
+    @tile File.read!("test/fixtures/terrarium_12_666_1432.png")
+    @summit [-121.41626358032227, 47.45862098585447]
+    @summit_z 1907.484375
+    @north [-121.41626358032227, 47.46140645090276]
+    @north_z 1711.12109375
+
+    defp summit_to_north(legs),
+      do: %{
+        "waypoints" => [
+          %{"lon" => Enum.at(@summit, 0), "lat" => Enum.at(@summit, 1)},
+          %{"lon" => Enum.at(@north, 0), "lat" => Enum.at(@north, 1)}
+        ],
+        "legs" => legs
+      }
+
+    test "samples a leg with no Z along its length, as Phoenix samples a straight leg" do
+      Req.Test.stub(Steer.Elevation.Tiles, &Plug.Conn.send_resp(&1, 200, @tile))
+
+      assert {:ok, attrs} = Routes.build(summit_to_north([leg([@summit, @north], false)]))
+
+      # Every 30 m or less over 310 m (see Steer.ElevationTest).
+      coordinates = attrs.geometry.coordinates
+      assert length(coordinates) == 12
+      assert hd(coordinates) == List.to_tuple(@summit ++ [@summit_z])
+      assert List.last(coordinates) == List.to_tuple(@north ++ [@north_z])
+      assert Enum.map(attrs.waypoints, & &1["geometry_index"]) == [0, 11]
+      assert attrs.max_ele_m == @summit_z
+      assert attrs.loss_m > 0
+    end
+
+    test "fills only the points missing Z in a leg that has some" do
+      Req.Test.stub(Steer.Elevation.Tiles, &Plug.Conn.send_resp(&1, 200, @tile))
+
+      assert {:ok, attrs} =
+               Routes.build(summit_to_north([leg([@summit, @north ++ [1700.0]])]))
+
+      assert attrs.geometry.coordinates ==
+               [List.to_tuple(@summit ++ [@summit_z]), List.to_tuple(@north ++ [1700.0])]
+    end
+
+    test "only fills the ends of a leg with no Z that's too long to sample" do
+      Req.Test.stub(Steer.Elevation.Tiles, &Plug.Conn.send_resp(&1, 200, @tile))
+      # About 60 km east of the summit. The stub serves the same tile there.
+      far = [-120.62, 47.45]
+
+      assert {:ok, attrs} =
+               Routes.build(%{
+                 "waypoints" => [@a, @b],
+                 "legs" => [leg([@summit, far], false)]
+               })
+
+      assert [{_, _, @summit_z}, {-120.62, 47.45, _z}] = attrs.geometry.coordinates
+    end
+
+    test "fails when the DEM can't be read" do
+      Req.Test.stub(Steer.Elevation.Tiles, &Plug.Conn.send_resp(&1, 503, ""))
+      # In a tile no other test fetches, so it can't be cached already.
+      leg = leg([[10.0, 10.0], [10.001, 10.0]], false)
+
+      assert Routes.build(%{"waypoints" => [@a, @b], "legs" => [leg]}) ==
+               {:error, :elevation_unavailable}
     end
   end
 

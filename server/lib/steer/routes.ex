@@ -10,7 +10,7 @@ defmodule Steer.Routes do
   require OpenTelemetry.Tracer, as: Tracer
 
   alias Steer.Accounts.User
-  alias Steer.Repo
+  alias Steer.{Elevation, Repo, Routing}
   alias Steer.Routes.{Name, Route, Stats}
 
   @doc """
@@ -79,6 +79,9 @@ defmodule Steer.Routes do
     * `"waypoints"`: the clicked points in order, `[%{"lon", "lat"}]`.
     * `"legs"`: one leg between each pair of consecutive waypoints,
       `[%{"coordinates" => [[lon, lat, z]], "snapped" => boolean}]`.
+      Coordinates may leave out Z, as in a leg the editor fell back to when
+      it couldn't reach `/api/snap`; those get Z from the DEM first (see
+      `fill_missing_z/1`).
 
   Joins the legs into one `Geo.LineStringZ`, dropping the repeated vertex
   where one leg ends and the next begins. Each waypoint gets the
@@ -86,8 +89,10 @@ defmodule Steer.Routes do
   first waypoint, and the end of the leg that reaches it for the rest.
 
   Returns `{:ok, attrs}` with `:waypoints`, `:geometry` and the stats, ready
-  for `Route.changeset/2` (the waypoints themselves are validated there), or
-  `{:error, changeset}` when the waypoints and legs don't fit together.
+  for `Route.changeset/2` (the waypoints themselves are validated there),
+  `{:error, changeset}` when the waypoints and legs don't fit together, or
+  `{:error, :elevation_unavailable}` when a leg needs Z and the DEM can't be
+  read.
   """
   def build(params) do
     waypoints = params["waypoints"]
@@ -103,12 +108,48 @@ defmodule Steer.Routes do
       not Enum.all?(legs, &valid_leg?/1) ->
         build_error(
           :legs,
-          "must each have a boolean snapped and at least 2 [lon, lat, z] coordinates in range"
+          "must each have a boolean snapped and at least 2 [lon, lat, z] or [lon, lat] coordinates in range"
         )
 
       true ->
-        {:ok, assemble(waypoints, legs)}
+        with {:ok, legs} <- fill_missing_z(legs), do: {:ok, assemble(waypoints, legs)}
     end
+  end
+
+  # Gives Z from the DEM to the legs that are missing some, before the stats
+  # are computed. A leg with no Z at all is a straight line the editor fell
+  # back to, so it's sampled along its length as Phoenix samples its own
+  # straight legs (see `Steer.Routing.snap_or_straight/2`), unless it's
+  # longer than a leg Phoenix would sample. Otherwise only the points
+  # without Z get it.
+  defp fill_missing_z(legs) do
+    Enum.reduce_while(Enum.reverse(legs), {:ok, []}, fn leg, {:ok, filled} ->
+      case leg_with_z(leg["coordinates"]) do
+        {:ok, coordinates} -> {:cont, {:ok, [%{leg | "coordinates" => coordinates} | filled]}}
+        {:error, _reason} -> {:halt, {:error, :elevation_unavailable}}
+      end
+    end)
+  end
+
+  defp leg_with_z(coordinates) do
+    cond do
+      Enum.all?(coordinates, &match?([_, _, _], &1)) ->
+        {:ok, coordinates}
+
+      Enum.all?(coordinates, &match?([_, _], &1)) and short?(coordinates) ->
+        Elevation.sample_line(coordinates)
+
+      true ->
+        Elevation.fill_z(coordinates)
+    end
+  end
+
+  defp short?(coordinates) do
+    coordinates
+    |> Enum.chunk_every(2, 1, :discard)
+    |> Enum.map(fn [from, to] -> Elevation.distance_m(from, to) end)
+    |> Enum.sum()
+    |> Kernel.<=(Routing.max_leg_m())
   end
 
   defp assemble(waypoints, legs) do
@@ -154,9 +195,11 @@ defmodule Steer.Routes do
 
   defp valid_leg?(_leg), do: false
 
-  defp valid_coordinate?([lon, lat, z])
+  defp valid_coordinate?([lon, lat, z]) when is_number(z), do: valid_coordinate?([lon, lat])
+
+  defp valid_coordinate?([lon, lat])
        when is_number(lon) and lon >= -180 and lon <= 180 and
-              is_number(lat) and lat >= -90 and lat <= 90 and is_number(z),
+              is_number(lat) and lat >= -90 and lat <= 90,
        do: true
 
   defp valid_coordinate?(_coordinate), do: false

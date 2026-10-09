@@ -24,7 +24,7 @@ These were settled while planning and resolve open items in the spec.
 | Auto-generated names | **Stats-based**, e.g. `5.2 mi loop · Sep 24` or `3.1 mi route · Sep 24`. Duplicates get ` (2)`, ` (3)`, … Generated on the backend. |
 | Unsaved-changes warning | **In-app confirm dialog** when leaving edit mode, and a **browser `beforeunload`** warning on refresh or tab close. |
 | Snap UX | **Optimistic**. A dashed straight leg appears right away and is replaced by the snapped geometry when it arrives. |
-| Default map view | **Snoqualmie Pass**, framed from Mount Defiance, Web Mountain and Bandera in the west to Guye, Kendall and Kaleetan in the east. Defined as bounds, not center and zoom, so it frames the same area on any screen size. This area is also the test area for seeds and routing checks. |
+| Default map view | **The Conejo Open Space** around Thousand Oaks, California, framed from Conejo Mountain and the Conejo Canyons in the west to Lang Ranch in the east, and from Lake Eleanor to Mount Clef Ridge. Defined as bounds, not center and zoom, so it frames the same area on any screen size. It started at Snoqualmie Pass, which is still the test area for seeds and routing checks. |
 | Peak data | Comes from the base map's own `mountain_peak` tile layer (`name`, `ele`, `ele_ft`, `rank`, available from zoom 7). The Liberty style doesn't draw it, so Steer adds its own layer. No backend is needed. |
 | Peak links | **SummitPost**, **Peakbagger** and **WTA**. AllTrails is dropped because there's no API and its terms forbid scraping. Links are shown only for peaks in **Washington State**, checked against a simplified state outline (a bounding box would also catch parts of Oregon, Idaho and BC). Exact pages come from **link indexes** bundled with the app (chunk 1.6): names, URLs and locations only, collected once by a harvest script from the Wayback Machine, Wikidata and WTA's hike map data. Peaks with no exact page get each site's **search URL**. Peaks outside Washington still show their name and elevation, with no links. |
 | Map layers | Hillshade, contours and trails are **always on**. There are no layer toggles in the MVP; they're future work. In view mode, only the **saved route selected in the sidebar** is drawn. In edit mode, the active route remains visible, even if unsaved. |
@@ -76,10 +76,10 @@ These were settled while planning and resolve open items in the spec.
 | `steer.snap.duration_ms` | histogram (server and client) | `snapped`; told apart by `service_name`. The client's runs from adding a point until its leg arrives | 6.8, 7.3 |
 | `snap.completed` | event | `duration_ms`, `snapped`: the client's `steer.snap.duration_ms` value. The **SC-001** panels (p95 under 1000 ms) read it from Loki, like SC-006 | 7.3 |
 | `snap.failed` | event | `reason`: `network` when Phoenix wasn't reached (a fetch error, or a proxy's non-JSON error response), `server` when it answered with an error or a response that isn't a leg | 7.4 |
-| `route.saved` | event | `mode` (new / existing), `named` (true/false), `distance_mi`, `leg_count`, `straight_leg_count` | 8.3, 9.3 |
-| `steer.editor.time_to_save_s` | histogram | from `editor.opened` to `route.saved`; **SC-002** panel, under 120 s | 8.3 |
-| `route.save_failed` | error event | `reason` | 8.3 |
-| `editor.discard_prompted`, `editor.discarded` | events | `trigger` (cancel / beforeunload) | 8.4, 8.5 |
+| `route.saved` | event | `mode` (new / existing), `named` (true/false), `distance_mi`, `leg_count`, `straight_leg_count`, `time_to_save_s`: the `steer.editor.time_to_save_s` value. The **SC-002** panels (under 120 s) read it from Loki, like SC-006 | 8.3, 9.3 |
+| `steer.editor.time_to_save_s` | histogram | from `editor.opened` to `route.saved` | 8.3 |
+| `route.save_failed` | event + error log | `reason`: `network` when Phoenix wasn't reached, `invalid` when it refused the route (422), `server` for its other errors | 8.3 |
+| `editor.discard_prompted`, `editor.discarded` | events | `trigger` (cancel / beforeunload). On `beforeunload`, `editor.discarded` is sent on `pagehide`, when the hiker chose to leave | 8.4, 8.5 |
 | `route.deleted` | event | `route_id` | 9.1 |
 | `steer.route.select_to_fit_ms` | histogram | the same value as `route.shown`'s `select_to_fit_ms`, for **SC-003** | 4.3 |
 
@@ -490,28 +490,29 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
 
 ## Phase 8: Save and exit (US3)
 
-- [ ] **8.1 Save payload builder**
-  Turn the editor state and the leg cache into `{name?, waypoints, legs}`.
+- [x] **8.1 Save payload builder**
+  `savePayload` (`features/routes/savePayload.ts`) turns the waypoints and their legs from the leg cache into `{name?, waypoints, legs}`. It's null while a leg is pending or there are fewer than 2 waypoints. The name is trimmed and left out when blank, and a leg the editor fell back to (7.4) goes as `[lon, lat]` without Z.
   *Verify*: Vitest tests.
 
-- [ ] **8.2 Backend fills missing Z**
-  During create and update, any leg coordinates without Z (legs that fell back in the client in 7.4) get DEM-sampled Z before the stats are computed.
+- [x] **8.2 Backend fills missing Z**
+  During create and update, `Steer.Routes.build/1` accepts `[lon, lat]` coordinates and gives them DEM Z before the stats are computed. A leg with no Z at all (one that fell back in the client in 7.4) is sampled every ~30 m like Phoenix's own straight legs, unless it's longer than the 50 km a leg is sampled over, when only its ends get Z. A leg with some Z only gets the missing points filled. When the DEM can't be read, the save is a 502.
   *Verify*: an ExUnit test.
 
-- [ ] **8.3 Save dialog** *(UI)*
-  Save opens a small dialog with an optional name field. On submit it POSTs (adding `createRoute` to `features/routes/api.ts`), returns to view mode, refreshes the list, and selects the new route. If any legs are still pending, Save waits for them.
+- [x] **8.3 Save dialog** *(UI)*
+  Save route (enabled from 2 points) opens a modal dialog (`Dialog`, on the browser's `<dialog>`) with an optional name field and an example of the generated name. On submit it POSTs (adding `createRoute` to `features/routes/api.ts`), returns to view mode, adds the returned route to the top of the list (no refetch, so it's drawn at once), and selects it. If any legs are still pending, Save waits for them (`useRouteSave`). A failure keeps the dialog open with what to do next. Telemetry: `route.saved`, `steer.editor.time_to_save_s` and `route.save_failed`, with SC-002 panels on the Steer dashboard.
   *Verify*: saving without a name gives a stats-based name, and the route appears in the sidebar.
 
-- [ ] **8.4 Dirty tracking and in-app confirm (FR-007)** *(UI)*
-  The editor is dirty when its waypoints differ from the state it was opened with. Cancel while dirty shows a confirm dialog.
+- [x] **8.4 Dirty tracking and in-app confirm (FR-007)** *(UI)*
+  The editor is dirty when its waypoints differ from the state it was opened with (`isDirty`; the mode keeps `openedWith`, so undoing back to it is clean again). Cancel while dirty shows a confirm dialog, with focus on Keep editing.
   *Verify*: Cancel with no changes exits right away. With changes, it asks first.
 
-- [ ] **8.5 `beforeunload` warning**
-  Register the handler only while in edit mode with unsaved changes.
+- [x] **8.5 `beforeunload` warning**
+  Register the handler only while in edit mode with unsaved changes (`useUnsavedChangesWarning`). `flushTelemetry` sends the `pagehide` event right away: the log processor's own `pagehide` flush listens on `document`, which `pagehide` never reaches.
   *Verify*: refreshing while dirty shows the browser prompt, and refreshing while clean does not.
 
-- [ ] **8.6 Check that the round trip is identical (SC-004)**
+- [x] **8.6 Check that the round trip is identical (SC-004)**
   *Verify*: save a route, reload the page, and check that the geometry and stats are unchanged. Time a full create, name, and save (SC-002, under 2 min).
+  *Result (2026-10-07)*: a route with a snapped leg and a client-fallback leg, read back by `GET /api/routes/:id` and in the list, had identical geometry and properties to the create response, and the route panel showed the same stats after a reload. A scripted create, snap and save took 8 s (5 s on the editor's own clock); a hand-timed run is still worth doing.
 
 **Milestone 8**: US3 is done. The core loop works end to end: view, create, snap, save, view.
 

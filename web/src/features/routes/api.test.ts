@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { listRoutes, type Route } from './api'
+import { createRoute, listRoutes, SaveError, type Route } from './api'
+import type { SavePayload } from './savePayload'
 
 const snowLake: Route = {
   type: 'Feature',
@@ -61,4 +62,59 @@ describe('listRoutes', () => {
     mockFetch(new Response('', { status: 500 }))
     await expect(listRoutes()).rejects.toThrow('GET /api/routes failed with status 500')
   })
+})
+
+describe('createRoute', () => {
+  const payload: SavePayload = {
+    name: 'Snow Lake',
+    waypoints: snowLake.properties.waypoints.map(({ lon, lat }) => ({ lon, lat })),
+    legs: [{ coordinates: snowLake.geometry.coordinates, snapped: true }],
+  }
+
+  it('posts the payload as JSON and returns the saved route', async () => {
+    const fetchMock = mockFetch(Response.json(snowLake, { status: 201 }))
+    await expect(createRoute(payload)).resolves.toEqual(snowLake)
+    expect(fetchMock).toHaveBeenCalledWith('/api/routes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+  })
+
+  async function failure(promise: Promise<unknown>) {
+    const error = await promise.then(
+      () => null,
+      (error: unknown) => error,
+    )
+    expect(error).toBeInstanceOf(SaveError)
+    return (error as SaveError).reason
+  }
+
+  it('fails as network when Phoenix is unreachable', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+    expect(await failure(createRoute(payload))).toBe('network')
+  })
+
+  it("fails as network on a proxy's plain-text error", async () => {
+    mockFetch(new Response('Bad Gateway', { status: 502, headers: { 'Content-Type': 'text/plain' } }))
+    expect(await failure(createRoute(payload))).toBe('network')
+  })
+
+  it('fails as invalid when Phoenix refuses the route', async () => {
+    mockFetch(Response.json({ errors: { legs: ['must have one leg'] } }, { status: 422 }))
+    expect(await failure(createRoute(payload))).toBe('invalid')
+  })
+
+  it("fails as server on Phoenix's other errors", async () => {
+    mockFetch(Response.json({ errors: { detail: 'DEM down' } }, { status: 502 }))
+    expect(await failure(createRoute(payload))).toBe('server')
+  })
+
+  it.each([null, {}, { id: 'x', geometry: { type: 'Point' }, properties: {} }])(
+    "fails as server on a response that isn't a route: %j",
+    async (body) => {
+      mockFetch(Response.json(body, { status: 201 }))
+      expect(await failure(createRoute(payload))).toBe('server')
+    },
+  )
 })
