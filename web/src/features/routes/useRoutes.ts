@@ -17,7 +17,13 @@ export function useRoutes(): { routes: RoutesResult; addRoute: (route: Route) =>
     let current = true
     listRoutes().then(
       (routes) => {
-        if (current) setResult({ routes })
+        if (current) {
+          setResult((previous) => {
+            const existing = previous && 'routes' in previous ? previous.routes : []
+            const existingIds = new Set(existing.map(({ id }) => id))
+            return { routes: [...existing, ...routes.filter(({ id }) => !existingIds.has(id))] }
+          })
+        }
       },
       (error: unknown) => {
         log.error('Could not load routes', { 'error.source': 'routes.list' }, error)
