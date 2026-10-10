@@ -520,8 +520,8 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
 
 ## Phase 9: Edit and delete existing routes (US5, P2)
 
-- [ ] **9.1 Delete** *(UI)*
-  A Delete button on the selected route opens a confirm dialog and then sends `DELETE` (adding `deleteRoute` to `features/routes/api.ts`). The route disappears from the map and the sidebar, and the selection clears.
+- [x] **9.1 Delete** *(UI)*
+  A **Delete route** button on the selected route's panel opens a confirm dialog (`DeleteDialog`, focus on Keep route) and then sends `DELETE` (adding `deleteRoute` to `features/routes/api.ts`; a 404 counts as deleted, since the route is gone either way). The route disappears from the map and the sidebar, and the selection clears. A failure keeps the dialog open to try again and is logged as an error. Telemetry: `route.deleted`.
   *Verify*: after deleting and reloading, the route is still gone.
 
 - [ ] **9.2 Load a route into the editor**

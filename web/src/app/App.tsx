@@ -15,8 +15,8 @@ import './App.css'
  * mode, sharing the saved routes, the peak and route selection, and the mode.
  */
 function App() {
-  const { routes, addRoute } = useRoutes()
-  const { selection, selectPeak, clearPeak, selectRoute } = useSelection()
+  const { routes, addRoute, removeRoute } = useRoutes()
+  const { selection, selectPeak, clearPeak, selectRoute, clearRoute } = useSelection()
   const { mode, createRoute, leaveEditMode, edit } = useMode()
   const editWaypoints = mode.name === 'edit' ? mode.editor.present.waypoints : null
   const editLegs = useEditorLegs(editWaypoints)
@@ -38,6 +38,12 @@ function App() {
     addRoute(route)
     leaveEditMode()
     selectRoute(route.id, performance.now())
+  }
+
+  // Gone from the list, the selection and so the map.
+  function handleRouteDeleted(id: string) {
+    removeRoute(id)
+    clearRoute()
   }
 
   return (
@@ -71,6 +77,7 @@ function App() {
           onSelectRoute={selectRoute}
           onClosePeak={clearPeak}
           onCreateRoute={handleCreateRoute}
+          onRouteDeleted={handleRouteDeleted}
         />
       )}
     </div>

@@ -42,6 +42,12 @@
   color: var(--color-text-muted);
 }
 
+.dialog-emphasis {
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
 .dialog-field {
   display: grid;
   gap: var(--space-1);

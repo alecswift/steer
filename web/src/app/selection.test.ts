@@ -62,4 +62,13 @@ describe('selectionReducer', () => {
     expect(state.selectedPeak).toBeNull()
     expect(state.selectedRoute).toEqual({ id: 'r1', selectedAt: 2 })
   })
+
+  it('clears the selected route', () => {
+    const withRoute = selectionReducer(initialSelection, { type: 'routeSelected', id: 'r1', at: 1 })
+    expect(selectionReducer(withRoute, { type: 'routeCleared' })).toEqual(initialSelection)
+  })
+
+  it('returns the same state when clearing with no route selected', () => {
+    expect(selectionReducer(initialSelection, { type: 'routeCleared' })).toBe(initialSelection)
+  })
 })
