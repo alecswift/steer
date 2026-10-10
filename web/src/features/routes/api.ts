@@ -85,3 +85,15 @@ export async function createRoute(payload: SavePayload): Promise<Route> {
   }
   return route as Route
 }
+
+/**
+ * Deletes a route (`DELETE /api/routes/:id`). A 404 counts as deleted, since
+ * the route is gone either way. Throws when the request fails.
+ */
+export async function deleteRoute(id: string): Promise<void> {
+  const url = `/api/routes/${encodeURIComponent(id)}`
+  const response = await fetch(url, { method: 'DELETE' })
+  if (!response.ok && response.status !== 404) {
+    throw new Error(`DELETE ${url} failed with status ${response.status}`)
+  }
+}

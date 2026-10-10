@@ -114,7 +114,7 @@ export function RedoIcon(props: IconProps) {
   )
 }
 
-/** Clear: a bin. */
+/** Clear, and Delete route: a bin. */
 export function ClearIcon(props: IconProps) {
   return (
     <Icon {...props}>

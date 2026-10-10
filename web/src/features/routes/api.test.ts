@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createRoute, listRoutes, SaveError, type Route } from './api'
+import { createRoute, deleteRoute, listRoutes, SaveError, type Route } from './api'
 import type { SavePayload } from './savePayload'
 
 const snowLake: Route = {
@@ -117,4 +117,27 @@ describe('createRoute', () => {
       expect(await failure(createRoute(payload))).toBe('server')
     },
   )
+})
+
+describe('deleteRoute', () => {
+  it('sends DELETE to the route', async () => {
+    const fetchMock = mockFetch(new Response(null, { status: 204 }))
+    await expect(deleteRoute(snowLake.id)).resolves.toBeUndefined()
+    expect(fetchMock).toHaveBeenCalledWith(`/api/routes/${snowLake.id}`, { method: 'DELETE' })
+  })
+
+  it('treats a route that is already gone as deleted', async () => {
+    mockFetch(Response.json({ errors: { detail: 'Not Found' } }, { status: 404 }))
+    await expect(deleteRoute(snowLake.id)).resolves.toBeUndefined()
+  })
+
+  it('throws when the server responds with an error', async () => {
+    mockFetch(new Response('', { status: 500 }))
+    await expect(deleteRoute(snowLake.id)).rejects.toThrow(`DELETE /api/routes/${snowLake.id} failed with status 500`)
+  })
+
+  it('throws when Phoenix is unreachable', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+    await expect(deleteRoute(snowLake.id)).rejects.toThrow('Failed to fetch')
+  })
 })
