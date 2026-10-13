@@ -88,12 +88,21 @@ export async function createRoute(payload: SavePayload): Promise<Route> {
 
 /**
  * Deletes a route (`DELETE /api/routes/:id`). A 404 counts as deleted, since
- * the route is gone either way. Throws when the request fails.
+ * the route is gone either way. Throws when the request fails or times out
+ * after 15 seconds.
  */
 export async function deleteRoute(id: string): Promise<void> {
   const url = `/api/routes/${encodeURIComponent(id)}`
-  const response = await fetch(url, { method: 'DELETE' })
-  if (!response.ok && response.status !== 404) {
-    throw new Error(`DELETE ${url} failed with status ${response.status}`)
+  const controller = new AbortController()
+  const timeout = setTimeout(() => {
+    controller.abort(new DOMException('Route deletion timed out', 'TimeoutError'))
+  }, 15_000)
+  try {
+    const response = await fetch(url, { method: 'DELETE', signal: controller.signal })
+    if (!response.ok && response.status !== 404) {
+      throw new Error(`DELETE ${url} failed with status ${response.status}`)
+    }
+  } finally {
+    clearTimeout(timeout)
   }
 }

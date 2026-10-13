@@ -24,6 +24,7 @@ export function DeleteDialog({ route, onDeleted, onDismiss }: Props) {
     setStatus('deleting')
     deleteRoute(route.id).then(
       () => {
+        setStatus('idle')
         track('route.deleted', { route_id: route.id })
         onDeleted(route.id)
       },
@@ -46,7 +47,7 @@ export function DeleteDialog({ route, onDeleted, onDismiss }: Props) {
       </p>
       <p className={`dialog-status${status === 'failed' ? ' dialog-status--error' : ''}`} role="alert">
         {status === 'failed' &&
-          'The route wasn’t deleted: the server couldn’t be reached or ran into a problem. Try again in a moment.'}
+          'Couldn’t confirm the route was deleted: the server couldn’t be reached or ran into a problem. Try again in a moment.'}
       </p>
       <div className="dialog-actions">
         <button type="button" className="dialog-button" onClick={dismiss} disabled={status === 'deleting'} data-autofocus>
