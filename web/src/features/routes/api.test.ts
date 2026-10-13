@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createRoute, listRoutes, SaveError, type Route } from './api'
+import { createRoute, deleteRoute, listRoutes, SaveError, type Route } from './api'
 import type { SavePayload } from './savePayload'
 
 const snowLake: Route = {
@@ -36,6 +36,7 @@ function mockFetch(response: Response) {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.useRealTimers()
 })
 
 describe('listRoutes', () => {
@@ -117,4 +118,66 @@ describe('createRoute', () => {
       expect(await failure(createRoute(payload))).toBe('server')
     },
   )
+})
+
+describe('deleteRoute', () => {
+  it('sends DELETE to the route', async () => {
+    const fetchMock = mockFetch(new Response(null, { status: 204 }))
+    await expect(deleteRoute(snowLake.id)).resolves.toBeUndefined()
+    expect(fetchMock).toHaveBeenCalledWith(`/api/routes/${snowLake.id}`, {
+      method: 'DELETE',
+      signal: expect.any(AbortSignal),
+    })
+  })
+
+  it('aborts a stalled request after 15 seconds', async () => {
+    vi.useFakeTimers()
+    let signal: AbortSignal | undefined
+    vi.stubGlobal('fetch', vi.fn((_url: string, options: RequestInit) => {
+      signal = options.signal as AbortSignal
+      return new Promise<Response>((_resolve, reject) => {
+        signal!.addEventListener('abort', () => reject(signal!.reason), { once: true })
+      })
+    }))
+
+    const request = deleteRoute(snowLake.id)
+    const rejection = expect(request).rejects.toThrow('Route deletion timed out')
+    await vi.advanceTimersByTimeAsync(14_999)
+    expect(signal?.aborted).toBe(false)
+    await vi.advanceTimersByTimeAsync(1)
+    await rejection
+    expect(signal?.aborted).toBe(true)
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it.each([204, 404, 500])('clears the timeout after an HTTP %i response', async (status) => {
+    vi.useFakeTimers()
+    const fetchMock = mockFetch(new Response(null, { status }))
+    const request = deleteRoute(snowLake.id)
+    if (status === 500) {
+      await expect(request).rejects.toThrow('failed with status 500')
+    } else {
+      await expect(request).resolves.toBeUndefined()
+    }
+    expect(vi.getTimerCount()).toBe(0)
+    await vi.advanceTimersByTimeAsync(15_000)
+    expect((fetchMock.mock.calls[0][1] as RequestInit).signal?.aborted).toBe(false)
+  })
+
+  it('treats a route that is already gone as deleted', async () => {
+    mockFetch(Response.json({ errors: { detail: 'Not Found' } }, { status: 404 }))
+    await expect(deleteRoute(snowLake.id)).resolves.toBeUndefined()
+  })
+
+  it('throws when the server responds with an error', async () => {
+    mockFetch(new Response('', { status: 500 }))
+    await expect(deleteRoute(snowLake.id)).rejects.toThrow(`DELETE /api/routes/${snowLake.id} failed with status 500`)
+  })
+
+  it('throws when Phoenix is unreachable', async () => {
+    vi.useFakeTimers()
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+    await expect(deleteRoute(snowLake.id)).rejects.toThrow('Failed to fetch')
+    expect(vi.getTimerCount()).toBe(0)
+  })
 })
