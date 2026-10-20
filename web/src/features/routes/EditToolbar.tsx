@@ -21,6 +21,8 @@ import { useRouteSave } from './useRouteSave'
 import './EditToolbar.css'
 
 type Props = {
+  // The saved route being edited, or null for a new one.
+  route: Route | null
   editor: EditorState
   // The route's legs, snapped or straight, for its stats.
   legs: RouteLeg[]
@@ -113,11 +115,11 @@ function Tool({ label, icon, enabled, onClick }: ToolProps) {
  * buttons that leave edit mode: Save route, through the save dialog, and
  * Cancel, which asks first when there are unsaved changes.
  */
-export function EditToolbar({ editor, legs, unsaved, openedAt, onAction, onLeave, onSaved }: Props) {
+export function EditToolbar({ route, editor, legs, unsaved, openedAt, onAction, onLeave, onSaved }: Props) {
   const { waypoints } = editor.present
   const stats = useMemo(() => routeStats(legs), [legs])
   const [dialog, setDialog] = useState<OpenDialog>(null)
-  const { status: saveStatus, save, reset } = useRouteSave({ waypoints, legs, openedAt, onSaved })
+  const { status: saveStatus, save, reset } = useRouteSave({ route, waypoints, legs, openedAt, onSaved })
 
   function handleCancel() {
     if (!unsaved) {
@@ -143,7 +145,7 @@ export function EditToolbar({ editor, legs, unsaved, openedAt, onAction, onLeave
   return (
     <section className="edit-toolbar" aria-labelledby="edit-toolbar-title">
       <h2 id="edit-toolbar-title" className="edit-toolbar-title">
-        New route
+        {route ? 'Edit route' : 'New route'}
       </h2>
       <p className="edit-toolbar-status" aria-live="polite">
         {status(waypoints)}
@@ -174,7 +176,13 @@ export function EditToolbar({ editor, legs, unsaved, openedAt, onAction, onLeave
         </button>
       </div>
       {dialog === 'save' && (
-        <SaveDialog status={saveStatus} exampleName={exampleName(stats, waypoints)} onSave={save} onDismiss={dismissSave} />
+        <SaveDialog
+          status={saveStatus}
+          initialName={route?.properties.name ?? ''}
+          exampleName={exampleName(stats, waypoints)}
+          onSave={save}
+          onDismiss={dismissSave}
+        />
       )}
       {dialog === 'discard' && <DiscardDialog onDiscard={handleDiscard} onKeepEditing={() => setDialog(null)} />}
     </section>

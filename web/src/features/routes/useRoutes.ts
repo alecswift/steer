@@ -8,11 +8,14 @@ export type RoutesResult = { routes: Route[] } | { failed: true } | null
 /**
  * Loads the saved routes once, when the app starts. `addRoute` puts a route
  * just saved at the top of the list, newest first as Phoenix lists them,
- * since the save returned it in full. `removeRoute` drops a deleted route.
+ * since the save returned it in full. `replaceRoute` swaps in a route just
+ * saved again, where it is in the list, as Phoenix lists routes by when they
+ * were created. `removeRoute` drops a deleted route.
  */
 export function useRoutes(): {
   routes: RoutesResult
   addRoute: (route: Route) => void
+  replaceRoute: (route: Route) => void
   removeRoute: (id: string) => void
 } {
   const [result, setResult] = useState<RoutesResult>(null)
@@ -47,6 +50,16 @@ export function useRoutes(): {
     [],
   )
 
+  const replaceRoute = useCallback(
+    (route: Route) =>
+      setResult((current) =>
+        current && 'routes' in current
+          ? { routes: current.routes.map((existing) => (existing.id === route.id ? route : existing)) }
+          : current,
+      ),
+    [],
+  )
+
   const removeRoute = useCallback(
     (id: string) =>
       setResult((current) =>
@@ -55,5 +68,5 @@ export function useRoutes(): {
     [],
   )
 
-  return { routes: result, addRoute, removeRoute }
+  return { routes: result, addRoute, replaceRoute, removeRoute }
 }

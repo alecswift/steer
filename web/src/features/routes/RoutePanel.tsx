@@ -1,4 +1,4 @@
-import { ClearIcon } from '@/components/icons'
+import { ClearIcon, EditIcon } from '@/components/icons'
 import { formatFeet, formatMiles } from '@/utils/format'
 import type { Route } from './api'
 import { metresToFeet, metresToMiles } from './units'
@@ -6,6 +6,8 @@ import './RoutePanel.css'
 
 type Props = {
   route: Route
+  // Opens the route in the editor.
+  onEdit: () => void
   // Asks to delete the route; the caller confirms first.
   onDelete: () => void
 }
@@ -23,7 +25,7 @@ function Measure({ value, unit }: { value: string; unit: string }) {
  * Shows the selected route's name, its distance as the panel's large figure,
  * and its elevation range and gain/loss, with the actions on the route below.
  */
-export function RoutePanel({ route, onDelete }: Props) {
+export function RoutePanel({ route, onEdit, onDelete }: Props) {
   const { name, distance_m, gain_m, loss_m, min_ele_m, max_ele_m } = route.properties
   const feet = (metres: number) => formatFeet(metresToFeet(metres))
 
@@ -62,7 +64,11 @@ export function RoutePanel({ route, onDelete }: Props) {
         </div>
       </dl>
       <div className="route-panel-actions">
-        <button type="button" className="route-panel-delete" onClick={onDelete}>
+        <button type="button" className="route-panel-action" onClick={onEdit}>
+          <EditIcon size={18} />
+          Edit route
+        </button>
+        <button type="button" className="route-panel-action route-panel-action--danger" onClick={onDelete}>
           <ClearIcon size={18} />
           Delete route
         </button>

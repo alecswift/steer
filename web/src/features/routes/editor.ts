@@ -23,6 +23,17 @@ export type EditorAction =
 export const initialEditorState: EditorState = { past: [], present: { waypoints: [] }, future: [] }
 
 /**
+ * The history for editing a saved route: it starts at the route's waypoints,
+ * so the editor isn't dirty yet. A closed loop starts with its open path in
+ * the past, so Undo reopens it to extend it, as it does a loop closed while
+ * editing.
+ */
+export function editorStateFor(waypoints: LngLat[]): EditorState {
+  const past = isLoopClosed(waypoints) ? [{ waypoints: waypoints.slice(0, -1) }] : []
+  return { past, present: { waypoints }, future: [] }
+}
+
+/**
  * Whether the route ends where it starts. Closing a loop appends the first
  * point, so a closed loop has at least 4 waypoints: 3 distinct points and the
  * start again.

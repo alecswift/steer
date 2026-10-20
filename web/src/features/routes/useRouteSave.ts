@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { log, metrics, track } from '@/telemetry'
-import { createRoute, SaveError, type Route, type SaveFailure } from './api'
+import { createRoute, SaveError, updateRoute, type Route, type SaveFailure } from './api'
 import type { LngLat } from './editor'
 import type { RouteLeg } from './legCache'
 import { savePayload } from './savePayload'
@@ -26,6 +26,8 @@ export type SaveStatus =
 type Request = { name: 'idle' } | { name: 'requested'; routeName: string } | { name: 'failed'; reason: SaveFailure }
 
 type Options = {
+  // The saved route being edited, or null for a new one.
+  route: Route | null
   waypoints: LngLat[]
   legs: RouteLeg[]
   // When the editor opened, on the performance.now() timeline.
@@ -35,10 +37,11 @@ type Options = {
 
 /**
  * Saves the route being edited. `save` waits for any pending legs, then
- * POSTs the route and passes the saved route to `onSaved`. `reset` stops
+ * POSTs a new route or PUTs a saved one, and passes the saved route to
+ * `onSaved`. `reset` stops
  * waiting, or clears a failure; a request already out isn't stopped.
  */
-export function useRouteSave({ waypoints, legs, openedAt, onSaved }: Options) {
+export function useRouteSave({ route: editing, waypoints, legs, openedAt, onSaved }: Options) {
   const [request, setRequest] = useState<Request>({ name: 'idle' })
   // The save body once it's asked for and every leg has arrived. The editor
   // is behind the modal dialog meanwhile, so the waypoints don't change.
@@ -52,7 +55,8 @@ export function useRouteSave({ waypoints, legs, openedAt, onSaved }: Options) {
   useEffect(() => {
     if (!payload || sending.current) return
     sending.current = true
-    createRoute(payload).then(
+    const sent = editing ? updateRoute(editing.id, payload) : createRoute(payload)
+    sent.then(
       (route) => {
         sending.current = false
         setRequest({ name: 'idle' })
@@ -60,7 +64,7 @@ export function useRouteSave({ waypoints, legs, openedAt, onSaved }: Options) {
         timeToSave.record(timeToSaveS)
         // The event carries the same value, since Loki counts every save.
         track('route.saved', {
-          mode: 'new',
+          mode: editing ? 'existing' : 'new',
           time_to_save_s: timeToSaveS,
           named: payload.name !== undefined,
           distance_mi: Math.round(metresToMiles(route.properties.distance_m) * 100) / 100,
@@ -77,7 +81,7 @@ export function useRouteSave({ waypoints, legs, openedAt, onSaved }: Options) {
         log.error('Could not save route', { 'error.source': 'routes.save' }, error)
       },
     )
-  }, [payload, openedAt, onSaved])
+  }, [payload, editing, openedAt, onSaved])
 
   const status: SaveStatus =
     request.name === 'requested'
