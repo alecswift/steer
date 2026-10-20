@@ -94,6 +94,16 @@ export function PlusIcon(props: IconProps) {
   )
 }
 
+/** Edit route: a pencil. */
+export function EditIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M13 3.5 16.5 7 7 16.5H3.5V13Z" />
+      <path d="m11 5.5 3.5 3.5" />
+    </Icon>
+  )
+}
+
 /** Undo: an arrow curling back to the left. */
 export function UndoIcon(props: IconProps) {
   return (

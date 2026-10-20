@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { editorReducer, initialEditorState, type EditorAction, type EditorState, type LngLat } from './editor'
-import { routeLegs, type LegCache } from './legCache'
+import { legKey, routeLegs, type LegCache } from './legCache'
 import { LegSnapper } from './legSnapper'
 import { SnapError, type SnappedLeg } from './snap'
 
@@ -204,5 +204,25 @@ describe('LegSnapper', () => {
     // The same waypoints again (e.g. StrictMode remounting) request both legs.
     t.snapper.update(t.waypoints)
     expect(t.snap).toHaveBeenCalledTimes(4)
+  })
+
+  it("starts from a saved route's legs and requests none of them", () => {
+    const t = setup()
+    t.snapper.load(
+      new Map([
+        [legKey(a, b), { status: 'snapped', coordinates: snapped(a, b).coordinates }],
+        [legKey(b, c), { status: 'straight', coordinates: [a, c] }],
+      ]),
+    )
+    t.edit(add(a), add(b), add(c))
+    expect(t.snap).not.toHaveBeenCalled()
+    expect(t.legs()).toEqual(['snapped', 'straight'])
+  })
+
+  it('aborts the requests in flight when it loads legs', () => {
+    const t = setup()
+    t.edit(add(a), add(b))
+    t.snapper.load(new Map())
+    expect(t.requests[0].signal.aborted).toBe(true)
   })
 })

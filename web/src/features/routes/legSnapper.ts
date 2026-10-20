@@ -47,8 +47,16 @@ export class LegSnapper {
 
   /** Aborts every request and forgets every leg, e.g. on leaving edit mode. */
   reset() {
+    this.load(emptyLegCache)
+  }
+
+  /**
+   * Aborts every request and starts again from `cache`, e.g. a saved route's
+   * legs on opening it in the editor, so they aren't requested again.
+   */
+  load(cache: LegCache) {
     for (const key of [...this.requests.keys()]) this.abort(key)
-    this.commit(emptyLegCache)
+    this.commit(cache)
   }
 
   private commit(next: LegCache) {

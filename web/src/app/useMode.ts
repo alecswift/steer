@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react'
+import type { Route } from '@/features/routes/api'
 import {
   editorReducer,
+  editorStateFor,
   initialEditorState,
   type EditorAction,
   type EditorState,
@@ -10,12 +12,13 @@ import { track } from '@/telemetry'
 
 // App-level mode. In view mode you browse saved routes and peaks; in edit
 // mode map clicks build a route, and the editor's history lives here, so it
-// starts fresh each time edit mode opens. `openedWith` is the route's
-// waypoints when it opened, to tell whether it has unsaved changes, and
-// `openedAt` when, on the performance.now() timeline, for the time to save.
+// starts fresh each time edit mode opens. `route` is the saved route being
+// edited, or null for a new one. `openedWith` is the route's waypoints when
+// it opened, to tell whether it has unsaved changes, and `openedAt` when, on
+// the performance.now() timeline, for the time to save.
 export type Mode =
   | { name: 'view' }
-  | { name: 'edit'; editor: EditorState; openedWith: LngLat[]; openedAt: number }
+  | { name: 'edit'; route: Route | null; editor: EditorState; openedWith: LngLat[]; openedAt: number }
 
 const actionEvents: Record<EditorAction['type'], string> = {
   ADD_POINT: 'editor.point_added',
@@ -25,13 +28,21 @@ const actionEvents: Record<EditorAction['type'], string> = {
   CLOSE_LOOP: 'editor.loop_closed',
 }
 
-/** The app's mode, with callbacks to open and leave edit mode and to apply editor actions, and the editor telemetry. */
+/**
+ * The app's mode, with callbacks to open edit mode on a new route or a saved
+ * one, to leave it and to apply editor actions, and the editor telemetry.
+ */
 export function useMode() {
   const [mode, setMode] = useState<Mode>({ name: 'view' })
 
   const createRoute = useCallback(() => {
-    setMode({ name: 'edit', editor: initialEditorState, openedWith: [], openedAt: performance.now() })
+    setMode({ name: 'edit', route: null, editor: initialEditorState, openedWith: [], openedAt: performance.now() })
     track('editor.opened', { mode: 'new' })
+  }, [])
+  // `waypoints` are the route's, as loadRoute gives them.
+  const editRoute = useCallback((route: Route, waypoints: LngLat[]) => {
+    setMode({ name: 'edit', route, editor: editorStateFor(waypoints), openedWith: waypoints, openedAt: performance.now() })
+    track('editor.opened', { mode: 'existing' })
   }, [])
   const leaveEditMode = useCallback(() => setMode({ name: 'view' }), [])
 
@@ -47,5 +58,5 @@ export function useMode() {
     track(actionEvents[action.type], { point_count: editor.present.waypoints.length })
   }
 
-  return { mode, createRoute, leaveEditMode, edit }
+  return { mode, createRoute, editRoute, leaveEditMode, edit }
 }

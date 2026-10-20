@@ -5,6 +5,7 @@ import {
   canRedo,
   canUndo,
   editorReducer,
+  editorStateFor,
   initialEditorState,
   isDirty,
   isLoopClosed,
@@ -218,5 +219,30 @@ describe('isDirty', () => {
 
   it('compares by value, not by reference', () => {
     expect(isDirty(run(add([...a]), add([...d])), [a, d])).toBe(false)
+  })
+})
+
+describe('editorStateFor', () => {
+  it("starts at a saved route's waypoints with nothing to undo, so it isn't dirty", () => {
+    const state = editorStateFor([a, b, c])
+    expect(waypoints(state)).toEqual([a, b, c])
+    expect(canUndo(state)).toBe(false)
+    expect(canRedo(state)).toBe(false)
+    expect(isDirty(state, [a, b, c])).toBe(false)
+  })
+
+  it('carries on from the saved route', () => {
+    const state = editorReducer(editorStateFor([a, b]), add(c))
+    expect(waypoints(state)).toEqual([a, b, c])
+    expect(isDirty(state, [a, b])).toBe(true)
+    expect(waypoints(editorReducer(state, undo))).toEqual([a, b])
+  })
+
+  it('reopens a saved loop on undo, so it can be extended', () => {
+    const state = editorStateFor([a, b, c, a])
+    expect(isDirty(state, [a, b, c, a])).toBe(false)
+    const reopened = editorReducer(state, undo)
+    expect(waypoints(reopened)).toEqual([a, b, c])
+    expect(waypoints(editorReducer(reopened, add(d)))).toEqual([a, b, c, d])
   })
 })

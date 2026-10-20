@@ -5,6 +5,8 @@ import type { SaveStatus } from './useRouteSave'
 
 type Props = {
   status: SaveStatus
+  // The name the field starts with: a saved route's own, or blank for a new one.
+  initialName: string
   // The name Phoenix would generate, e.g. `4.2 mi loop · Oct 7`, or null
   // while the distance isn't known yet.
   exampleName: string | null
@@ -31,12 +33,13 @@ function statusText(status: SaveStatus) {
 }
 
 /**
- * Names and saves the route. The name is optional: left blank, Phoenix names
- * it by its distance and the date. While legs are still snapping it waits
+ * Names and saves the route. A saved route keeps its name unless it's changed
+ * here. The name is optional: left blank, Phoenix names it by its distance
+ * and the date. While legs are still snapping it waits
  * for them, then saves.
  */
-export function SaveDialog({ status, exampleName, onSave, onDismiss }: Props) {
-  const [name, setName] = useState('')
+export function SaveDialog({ status, initialName, exampleName, onSave, onDismiss }: Props) {
+  const [name, setName] = useState(initialName)
   const busy = status.name === 'waiting' || status.name === 'saving'
 
   return (
