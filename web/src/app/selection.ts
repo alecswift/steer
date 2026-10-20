@@ -23,13 +23,14 @@ export type SelectionAction =
   | { type: 'peakSelected'; peak: Peak; at: number }
   | { type: 'peakCleared' }
   | { type: 'routeSelected'; id: string; at: number }
+  | { type: 'routeCleared' }
 
 export const initialSelection: Selection = { selectedPeak: null, selectedRoute: null }
 
 /**
- * Selects a peak or a route with its click timestamp, or clears the current peak.
+ * Selects a peak or a route with its click timestamp, or clears the current peak or route.
  * Selecting a route also clears the peak, so the sidebar shows the route just chosen.
- * Returns the same state when clearing an empty peak selection.
+ * Returns the same state when clearing a selection that's already empty.
  */
 export function selectionReducer(state: Selection, action: SelectionAction): Selection {
   switch (action.type) {
@@ -39,5 +40,7 @@ export function selectionReducer(state: Selection, action: SelectionAction): Sel
       return state.selectedPeak ? { ...state, selectedPeak: null } : state
     case 'routeSelected':
       return { ...state, selectedPeak: null, selectedRoute: { id: action.id, selectedAt: action.at } }
+    case 'routeCleared':
+      return state.selectedRoute ? { ...state, selectedRoute: null } : state
   }
 }

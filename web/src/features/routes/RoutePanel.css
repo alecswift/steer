@@ -55,3 +55,45 @@
 .route-panel-stats .route-panel-unit {
   font-size: var(--text-sm);
 }
+
+/* Actions on the route, below its details. Delete is quiet until hovered:
+   danger-coloured text, never a filled button, so it doesn't compete with
+   Create route (see web/DESIGN.md). */
+.route-panel-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+}
+
+.route-panel-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  /* Pulls the icon's optical edge in line with the stats above. */
+  margin-left: calc(-1 * var(--space-2));
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-danger);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+  transition: background-color 120ms ease-out;
+}
+
+.route-panel-delete:hover {
+  background: var(--color-surface);
+}
+
+.route-panel-delete:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-panel-delete {
+    transition: none;
+  }
+}
