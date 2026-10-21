@@ -1,3 +1,4 @@
+import { unwrapLongitudes } from './antimeridian'
 import { isLoopClosed, type LngLat } from './editor'
 import type { LegStatus, RouteLeg } from './legCache'
 
@@ -7,7 +8,8 @@ export type WaypointProperties = { start: boolean }
 /**
  * The route being edited as GeoJSON: each leg with its status, then a marker
  * per waypoint, the first marked as the start. A closed loop's last waypoint
- * is the start again, so it gets no marker of its own.
+ * is the start again, so it gets no marker of its own. A leg across ±180°
+ * runs on past it, so it's drawn the short way.
  */
 export function editorFeatures(
   waypoints: LngLat[],
@@ -16,7 +18,7 @@ export function editorFeatures(
   const lines = legs.map((leg) => ({
     type: 'Feature' as const,
     properties: { status: leg.status },
-    geometry: { type: 'LineString' as const, coordinates: leg.coordinates },
+    geometry: { type: 'LineString' as const, coordinates: unwrapLongitudes(leg.coordinates) },
   }))
   const markers = (isLoopClosed(waypoints) ? waypoints.slice(0, -1) : waypoints).map((point, i) => ({
     type: 'Feature' as const,

@@ -65,6 +65,27 @@ defmodule Steer.ElevationTest do
       Req.Test.verify!(Tiles)
     end
 
+    test "crosses ±180° the short way, in the tiles either side of it" do
+      # About 210 m across the antimeridian in Fiji. The stub serves the
+      # same tile for both.
+      Req.Test.expect(Tiles, 2, fn conn ->
+        assert conn.request_path =~ ~r"/terrarium/12/(4095|0)/\d+\.png$"
+        serve_tile(conn)
+      end)
+
+      assert {:ok, line} = Steer.Elevation.sample_line([[179.999, -16.8], [-179.999, -16.8]])
+
+      assert length(line) == 9
+      assert hd(line) |> Enum.take(2) == [179.999, -16.8]
+      assert List.last(line) |> Enum.take(2) == [-179.999, -16.8]
+
+      for [lon, _lat, _z] <- line do
+        assert abs(lon) >= 179.999 and abs(lon) <= 180
+      end
+
+      Req.Test.verify!(Tiles)
+    end
+
     test "passes on a tile that can't be fetched" do
       Req.Test.stub(Tiles, &Plug.Conn.send_resp(&1, 503, ""))
 

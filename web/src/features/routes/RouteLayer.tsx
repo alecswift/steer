@@ -1,6 +1,7 @@
-import { useEffect, useEffectEvent } from 'react'
+import { useEffect, useEffectEvent, useMemo } from 'react'
 import { Layer, Source, useMap, type PaddingOptions } from 'react-map-gl/maplibre'
 import { metrics, track } from '@/telemetry'
+import { unwrapLongitudes } from './antimeridian'
 import type { Route } from './api'
 import { lineBounds } from './bounds'
 import { routeLayerStyle, routeSourceId } from './route.style'
@@ -41,6 +42,12 @@ export function RouteLayer({ route, selectedAt, visible, padding, beforeId }: Pr
     if (route) track('route.shown', { route_id: route.id, select_to_fit_ms: ms })
   })
   const currentPadding = useEffectEvent(() => padding)
+  // A route across ±180° runs on past it, so it's drawn the short way.
+  const drawn = useMemo(
+    () =>
+      route && { ...route, geometry: { ...route.geometry, coordinates: unwrapLongitudes(route.geometry.coordinates) } },
+    [route],
+  )
 
   useEffect(() => {
     const map = mapRef?.getMap()
@@ -63,10 +70,10 @@ export function RouteLayer({ route, selectedAt, visible, padding, beforeId }: Pr
     }
   }, [mapRef, route, selectedAt])
 
-  if (!route) return null
+  if (!drawn) return null
 
   return (
-    <Source id={routeSourceId} type="geojson" data={route}>
+    <Source id={routeSourceId} type="geojson" data={drawn}>
       <Layer
         {...routeLayerStyle}
         layout={{ ...routeLayerStyle.layout, visibility: visible ? 'visible' : 'none' }}

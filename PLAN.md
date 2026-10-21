@@ -544,13 +544,15 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
 
 ## Phase 10: Edge cases and acceptance
 
-- [ ] **10.1 Antimeridian**
-  Fit bounds and draw legs correctly for routes that cross ±180° (e.g. Fiji or the Aleutians).
+- [x] **10.1 Antimeridian**
+  Fit bounds and draw legs correctly for routes that cross ±180° (e.g. Fiji or the Aleutians). Routes stay within -180..180 in state and the API. A click on a world copy past ±180° is wrapped back into that range, and lines are unwrapped only to draw and frame them (`unwrapLongitudes`, `features/routes/antimeridian.ts`): each longitude is moved to within 180° of the one before, so the drawn route, the editor's legs and `lineBounds` run on past 180 rather than back across the world. Phoenix's straight legs (`Steer.Elevation.sample_line/1`) go the short way across the line too, rather than sampling round the world. BRouter can't route across ±180° ("island detected"), or within a few km west of it ("datafile E180_S20.rd5 not found"), so those legs fall back to straight (FR-004).
   *Verify*: build and save a route that crosses the line, then select it.
+  *Result (2026-10-21)*: a route on Taveuni, Fiji (one point west of 180°, two east, clicked on the world copy) saved with its waypoints in range, drew across the line, and was framed across it (west -180.03, east -179.94) on save and on reselecting it after a reload. Its distance (9.5 km) was right, but its elevations weren't: AWS's Terrarium tiles are wrong east of 180° on Taveuni (at z12, -1051 m where BRouter and z8 give about 714 m), and the map's contours show it too. This is source data, not Steer's lookup; the Aleutians agree across zooms.
 
-- [ ] **10.2 High latitudes**
-  Handle clicks near Web Mercator's limit (~85°) gracefully, and check that stats are sensible for routes at high latitude.
+- [x] **10.2 High latitudes**
+  Handle clicks near Web Mercator's limit (~85°) gracefully, and check that stats are sensible for routes at high latitude. Untilted, the map ends at ±85.05°, but tilted, it can show blank space past its edge; a click there is ignored rather than adding a point off the map (`maxMercatorLat`). Phoenix already clamps DEM lookups to the same limit.
   *Verify*: build a route in Svalbard.
+  *Result (2026-10-21)*: a route in Longyearbyen snapped and saved at 1.86 km, 29 m gain and 144 m loss, between 15 and 159 m, sensible for the valley (PostGIS distance checked by hand there and across 180°). On a tilted map at the north edge, a click past it added no point, and clicks just inside it (85.05°) snapped and got Z.
 
 - [ ] **10.3 Routing outage**
   *Verify*: with `docker compose stop brouter`, new legs fall back to straight lines, saves work, and no progress is lost.
