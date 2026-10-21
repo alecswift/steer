@@ -2,6 +2,11 @@
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
+// Docker Compose runs Vite in a container where Phoenix and the collector
+// aren't on localhost, so it sets these to their service addresses.
+const apiUrl = process.env.API_URL ?? 'http://localhost:4000'
+const otlpUrl = process.env.OTLP_URL ?? 'http://localhost:4318'
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
@@ -14,11 +19,11 @@ export default defineConfig({
     strictPort: true,  // fail instead of auto-incrementing if port is taken
     proxy: {
       // The Phoenix API, proxied so it's same-origin and needs no CORS setup.
-      '/api': 'http://localhost:4000',
+      '/api': apiUrl,
       // Browser telemetry goes to the collector's OTLP HTTP port through the
       // dev server, so requests are same-origin and need no CORS setup.
       '/otlp': {
-        target: 'http://localhost:4318',
+        target: otlpUrl,
         rewrite: (path) => path.replace(/^\/otlp/, ''),
       },
     },

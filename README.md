@@ -28,18 +28,32 @@ export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
 
 ## Getting started
 
-From a clean checkout, run these from the repo root:
+From a clean checkout, run this from the repo root:
 
 ```sh
-docker compose up -d db telemetry   # start PostGIS and the telemetry stack
-cd web
-npm install
-npm run dev                         # start the app on localhost:3000
+docker compose up -d
 ```
 
-The dev server opens the app in your browser at [localhost:3000](http://localhost:3000). It fails instead of picking another port if 3000 is taken. If new packages were installed while it was running, restart it.
+It starts everything: PostGIS (`db`), BRouter (`brouter`), the telemetry stack (`telemetry`), the Phoenix API (`server`, on `localhost:4000`) and the Vite dev server (`web`). Then open the app at [localhost:3000](http://localhost:3000).
 
-To stop the services, run `docker compose stop`. Their data is kept in Docker volumes, so it's still there when you start them again.
+- **First start** takes a few minutes: Compose builds BRouter, and the `server` and `web` containers install their dependencies. Follow along with `docker compose logs -f server web`.
+- **Code changes** apply without a restart. The source folders are mounted into the containers: Vite hot-reloads the frontend, and Phoenix recompiles on the next request.
+- **New dependencies** are installed when the container starts, so after changing `package.json` or `mix.exs`, run `docker compose restart web` or `docker compose restart server`.
+- **Snapping** needs BRouter's segment files, which are downloaded separately (see [Routing](#routing)).
+
+To stop everything, run `docker compose stop`. The database and telemetry data are kept in Docker volumes, so they're still there when you start again.
+
+### Running Phoenix or Vite natively
+
+You can run either app outside Docker instead, for example to use `iex`. Stop its container first so the port is free, then start it yourself, each in its own terminal from the repo root:
+
+```sh
+docker compose stop server web
+cd server && mix setup && mix phx.server   # the API on localhost:4000
+cd web && npm install && npm run dev       # the app on localhost:3000
+```
+
+Run natively, Vite opens the app in your browser itself, and it fails instead of picking another port if 3000 is taken.
 
 ## Frontend commands
 
@@ -63,7 +77,7 @@ The `db` service runs PostGIS on `localhost:5432`, with user `postgres` and pass
 docker compose exec db psql -U postgres
 ```
 
-Nothing uses the database yet; the Phoenix backend arrives in Phase 2 of the plan.
+The Phoenix backend stores saved routes here, in the `steer_dev` database. The `server` container creates, migrates and seeds it on start.
 
 ## Routing
 
