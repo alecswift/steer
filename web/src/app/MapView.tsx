@@ -13,7 +13,7 @@ import { RouteLayer } from '@/features/routes/RouteLayer'
 import { ContourLayer } from '@/features/terrain/ContourLayer'
 import { HillshadeLayer } from '@/features/terrain/HillshadeLayer'
 import { TrailsLayer } from '@/features/trails/TrailsLayer'
-import { baseStyleUrl, defaultBounds } from '@/map/config'
+import { baseStyleUrl, defaultBounds, maxMercatorLat } from '@/map/config'
 import { metrics, track } from '@/telemetry'
 import type { SelectedRoute } from './selection'
 
@@ -98,7 +98,13 @@ export function MapView({
    */
   function handleClick(e: MapLayerMouseEvent) {
     if (editing) {
-      onAddPoint([e.lngLat.lng, e.lngLat.lat])
+      // Past ±180°, the map shows copies of the world, where a click's
+      // longitude runs on past it (181°); wrapped, it's the same point (-179°).
+      const { lng, lat } = e.lngLat.wrap()
+      // Tilted, the map can show blank space past its north or south edge,
+      // where a click isn't on the map.
+      if (Math.abs(lat) > maxMercatorLat) return
+      onAddPoint([lng, lat])
       return
     }
     const feature = e.features?.[0]

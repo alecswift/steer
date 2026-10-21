@@ -60,6 +60,14 @@ describe('editorFeatures', () => {
     ])
   })
 
+  it('draws a leg across 180° the short way, with its markers either side', () => {
+    const west: LngLat = [179.98, -16.81]
+    const east: LngLat = [-179.98, -16.83]
+    const [[, end]] = legs([west, east]) as GeoJSON.Position[][]
+    expect(end[0]).toBeCloseTo(180.02, 9)
+    expect(markers([west, east]).map((m) => m.at)).toEqual([west, east])
+  })
+
   it('draws a finished leg with its geometry and status', () => {
     const coordinates = [[...a, 1000], [-121.405, 47.426, 1100], [...b, 1200]]
     const { cache } = requestLegs(emptyLegCache, [a, b, c])

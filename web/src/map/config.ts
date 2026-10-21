@@ -10,6 +10,9 @@ export const defaultBounds: LngLatBoundsLike = [
   [-118.79, 34.25],
 ]
 
+// Web Mercator's limit: the map covers latitudes up to about ±85.05°.
+export const maxMercatorLat = 85.0511287798
+
 export const baseStyleUrl = 'https://tiles.openfreemap.org/styles/liberty'
 
 // Free, no-API-key elevation data (AWS Open Data).

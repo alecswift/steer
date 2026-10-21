@@ -54,8 +54,14 @@ defmodule Steer.Elevation do
     [first | points]
   end
 
+  # The shorter way round in longitude, so a line across ±180° doesn't go
+  # round the world, with the result back in -180..180.
   defp interpolate([lon1, lat1], [lon2, lat2], t),
-    do: [lon1 + (lon2 - lon1) * t, lat1 + (lat2 - lat1) * t]
+    do: [wrap_lon(lon1 + wrap_lon(lon2 - lon1) * t), lat1 + (lat2 - lat1) * t]
+
+  defp wrap_lon(lon) when lon > 180, do: lon - 360
+  defp wrap_lon(lon) when lon < -180, do: lon + 360
+  defp wrap_lon(lon), do: lon
 
   @doc """
   The great-circle (haversine) distance in meters between two `[lon, lat]`
