@@ -16,7 +16,7 @@ These were settled while planning and resolve open items in the spec.
 | Segment files | **The whole world, downloaded upfront** (about 10 GB) by a one-shot `brouter-segments` compose service, run by hand. Chosen in chunk 6.2. |
 | Elevation source | Snapped legs use **BRouter's Z values**. Straight fallback legs get Z sampled from **AWS Terrarium tiles in Phoenix**, as do the rare snapped vertices BRouter has no elevation for. |
 | Repo layout | `web/` (Vite + React) and `server/` (Phoenix). `docker-compose.yml` at the root. |
-| Local infra | **Docker Compose** runs PostGIS, BRouter and the telemetry stack. Phoenix and Vite run natively. |
+| Local infra | **Docker Compose** runs PostGIS, BRouter, the telemetry stack, Phoenix (`server`) and Vite (`web`), so `docker compose up -d` starts everything. Phoenix and Vite bind-mount their source and keep Linux deps in volumes. They can still run natively; Compose overrides their `localhost` addresses with env vars. |
 | Telemetry | Telemetry is **central to the project**. **OpenTelemetry** is used everywhere, for structured logs, traces, metrics, product events and errors. The data goes to a **Grafana LGTM** container (Loki, Grafana, Tempo, and Prometheus/Mimir for metrics) in Docker Compose. It starts in Phase 0 (browser) and Phase 2 (Phoenix), and **every chunk after that adds its own telemetry** (see "Telemetry conventions"). The same OpenTelemetry setup can later send to a hosted service by changing an endpoint. |
 | Testing | **ExUnit** (backend), **Vitest** (frontend logic), and **manual verify steps** in every chunk. No end-to-end tests in the MVP. |
 | Frontend design | All UI work (components, layout, styling, dialogs, map marker and line styles) uses Anthropic's **frontend-design** Claude Code plugin. Chunk 0.12 sets up the shared design foundation, and every *(UI)* chunk builds on it so the app looks consistent. |
@@ -524,15 +524,18 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
   A **Delete route** button on the selected route's panel opens a confirm dialog (`DeleteDialog`, focus on Keep route) and then sends `DELETE` (adding `deleteRoute` to `features/routes/api.ts`; a 404 counts as deleted, since the route is gone either way). The route disappears from the map and the sidebar, and the selection clears. A failure keeps the dialog open to try again and is logged as an error. Telemetry: `route.deleted`.
   *Verify*: after deleting and reloading, the route is still gone.
 
-- [ ] **9.2 Load a route into the editor**
-  - Split the stored geometry at each waypoint's `geometry_index` to rebuild the legs.
-  - Seed the leg cache with those legs.
-  - Start the history at the loaded state, so the editor is not dirty yet.
+- [x] **9.2 Load a route into the editor**
+  - **Edit route** on the selected route's panel opens it in the editor (`editRoute` in `app/useMode.ts`), titled Edit route. Telemetry: `editor.opened` with `mode: existing`.
+  - `loadRoute` (`features/routes/loadRoute.ts`) splits the stored geometry at each waypoint's `geometry_index` to rebuild the legs, each running from its start waypoint's vertex to its end waypoint's inclusive. Where Phoenix kept two vertices at a joint (a straight leg after a snapped one), the later leg also gets the earlier one's end, so saving the legs again joins them into the same line.
+  - Whether a leg was snapped isn't stored, so it's told from the geometry: a straight leg ends exactly on its clicked point, and a snapped one on the nearest trail.
+  - The leg cache is seeded with those legs (`LegSnapper.load`, through `useEditorLegs`'s `loadLegs`) in the same update that opens edit mode.
+  - The history starts at the loaded state (`editorStateFor`), so the editor is not dirty yet. A saved loop starts with its open path in the past, so Undo reopens it to extend it.
 
-  *Verify*: a Vitest test for the split. Clicking **Edit** shows the same line with nothing re-requested.
+  *Verify*: a Vitest test for the split. Clicking **Edit route** shows the same line with nothing re-requested.
+  *Result (2026-10-19)*: Vitest tests for the split, including a round trip through a copy of Phoenix's join. Each of the 5 saved dev routes, loaded and sent back as a temporary `POST` and then `PUT`, came back with identical geometry, waypoints and stats.
 
-- [ ] **9.3 Save an existing route**
-  Saving an edited route uses `PUT` (adding `updateRoute` to `features/routes/api.ts`) and keeps the existing name, which can be changed in the dialog. A cleared name gets a new generated one.
+- [x] **9.3 Save an existing route**
+  Saving an edited route uses `PUT` (adding `updateRoute` to `features/routes/api.ts`, which shares `createRoute`'s error handling) and keeps the existing name, which the dialog starts with and which can be changed there. A cleared name gets a new generated one. Back in view mode, the route is replaced where it was in the list (Phoenix lists routes by when they were created), and selected and framed again. Telemetry: `route.saved` with `mode: existing`.
   *Verify*: extend a saved route, save it, reload, and check the new geometry and stats.
 
 **Milestone 9**: US5 is done, which completes every MVP user story.

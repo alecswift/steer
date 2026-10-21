@@ -57,31 +57,43 @@ export class SaveError extends Error {
  * with its stats and its name, generated when none was given. Throws a
  * `SaveError` when the request fails or the response isn't a route.
  */
-export async function createRoute(payload: SavePayload): Promise<Route> {
+export function createRoute(payload: SavePayload): Promise<Route> {
+  return sendRoute('POST', '/api/routes', payload)
+}
+
+/**
+ * Replaces a saved route (`PUT /api/routes/:id`) and returns it as Phoenix
+ * stored it, as `createRoute` does. Left out, the name is generated again.
+ */
+export function updateRoute(id: string, payload: SavePayload): Promise<Route> {
+  return sendRoute('PUT', `/api/routes/${encodeURIComponent(id)}`, payload)
+}
+
+async function sendRoute(method: 'POST' | 'PUT', url: string, payload: SavePayload): Promise<Route> {
   let response: Response
   try {
-    response = await fetch('/api/routes', {
-      method: 'POST',
+    response = await fetch(url, {
+      method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
   } catch (error) {
-    throw new SaveError('network', `POST /api/routes failed: ${String(error)}`, { cause: error })
+    throw new SaveError('network', `${method} ${url} failed: ${String(error)}`, { cause: error })
   }
   if (!response.ok) {
     // As in snapLeg: Phoenix's errors are JSON, a proxy's are not.
     const fromPhoenix = response.headers.get('Content-Type')?.includes('application/json') ?? false
     const reason = !fromPhoenix ? 'network' : response.status === 422 ? 'invalid' : 'server'
-    throw new SaveError(reason, `POST /api/routes failed with status ${response.status}`)
+    throw new SaveError(reason, `${method} ${url} failed with status ${response.status}`)
   }
   let route: Partial<Route> | null
   try {
     route = (await response.json()) as Partial<Route> | null
   } catch (error) {
-    throw new SaveError('server', 'POST /api/routes returned an invalid route', { cause: error })
+    throw new SaveError('server', `${method} ${url} returned an invalid route`, { cause: error })
   }
   if (typeof route?.id !== 'string' || route.geometry?.type !== 'LineString' || !route.properties) {
-    throw new SaveError('server', 'POST /api/routes returned an invalid route')
+    throw new SaveError('server', `${method} ${url} returned an invalid route`)
   }
   return route as Route
 }

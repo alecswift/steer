@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createRoute, deleteRoute, listRoutes, SaveError, type Route } from './api'
+import { createRoute, deleteRoute, listRoutes, SaveError, updateRoute, type Route } from './api'
 import type { SavePayload } from './savePayload'
 
 const snowLake: Route = {
@@ -118,6 +118,30 @@ describe('createRoute', () => {
       expect(await failure(createRoute(payload))).toBe('server')
     },
   )
+})
+
+describe('updateRoute', () => {
+  const payload: SavePayload = {
+    waypoints: snowLake.properties.waypoints.map(({ lon, lat }) => ({ lon, lat })),
+    legs: [{ coordinates: snowLake.geometry.coordinates, snapped: true }],
+  }
+
+  it('puts the payload to the route and returns the saved route', async () => {
+    const fetchMock = mockFetch(Response.json(snowLake))
+    await expect(updateRoute(snowLake.id, payload)).resolves.toEqual(snowLake)
+    expect(fetchMock).toHaveBeenCalledWith(`/api/routes/${snowLake.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+  })
+
+  it('fails as invalid when Phoenix refuses the route', async () => {
+    mockFetch(Response.json({ errors: { legs: ['must have one leg'] } }, { status: 422 }))
+    const error = await updateRoute(snowLake.id, payload).catch((error: unknown) => error)
+    expect(error).toBeInstanceOf(SaveError)
+    expect((error as SaveError).reason).toBe('invalid')
+  })
 })
 
 describe('deleteRoute', () => {

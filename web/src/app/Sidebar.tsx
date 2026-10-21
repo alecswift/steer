@@ -16,6 +16,7 @@ type Props = {
   onSelectRoute: (id: string, at: number) => void
   onClosePeak: () => void
   onCreateRoute: () => void
+  onEditRoute: (route: Route) => void
   // After the route has been deleted.
   onRouteDeleted: (id: string) => void
 }
@@ -31,6 +32,7 @@ export function Sidebar({
   onSelectRoute,
   onClosePeak,
   onCreateRoute,
+  onEditRoute,
   onRouteDeleted,
 }: Props) {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
@@ -47,7 +49,11 @@ export function Sidebar({
         {selectedPeak ? (
           <PeakPanel peak={selectedPeak} selectedAt={selectedPeak.selectedAt} onClose={onClosePeak} />
         ) : selectedRoute ? (
-          <RoutePanel route={selectedRoute} onDelete={() => setConfirmingDelete(true)} />
+          <RoutePanel
+            route={selectedRoute}
+            onEdit={() => onEditRoute(selectedRoute)}
+            onDelete={() => setConfirmingDelete(true)}
+          />
         ) : (
           <p className="sidebar-empty">
             <PeakMark className="sidebar-empty-mark" />
