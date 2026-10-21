@@ -45,13 +45,24 @@ To stop everything, run `docker compose stop`. The database and telemetry data a
 
 ### Running Phoenix or Vite natively
 
-You can run either app outside Docker instead, for example to use `iex`. Stop its container first so the port is free, then start it yourself, each in its own terminal from the repo root:
+You can run the apps outside Docker instead, for example to use `iex`. Stop the container you're replacing first so its port is free, then start the app yourself from the repo root.
+
+To run only Vite natively (the `server` container keeps serving the API on `localhost:4000`):
+
+```sh
+docker compose stop web
+cd web && npm install && npm run dev       # the app on localhost:3000
+```
+
+To run Phoenix natively, run Vite natively too: the `web` container sends API requests to the `server` container, not to your machine. Stop both, then start each in its own terminal:
 
 ```sh
 docker compose stop server web
 cd server && mix setup && mix phx.server   # the API on localhost:4000
 cd web && npm install && npm run dev       # the app on localhost:3000
 ```
+
+Native Phoenix needs **Elixir 1.20.4** on **Erlang/OTP 29**, the versions pinned in `server/.tool-versions` (so `asdf` or `mise` pick them up) and used by the `server` container.
 
 Run natively, Vite opens the app in your browser itself, and it fails instead of picking another port if 3000 is taken.
 
