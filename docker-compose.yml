@@ -65,7 +65,52 @@ services:
       timeout: 5s
       retries: 30
 
+  # The Phoenix API. The source is bind-mounted and `mix phx.server`
+  # recompiles on each request, so edits apply without a restart.
+  server:
+    build: ./server
+    # `mix setup` fetches deps, creates and migrates the database and seeds
+    # it; each step is a no-op when already done.
+    command: sh -c "mix setup && mix phx.server"
+    environment:
+      PHX_IP: 0.0.0.0
+      DATABASE_HOST: db
+      BROUTER_URL: http://brouter:17777
+      OTLP_ENDPOINT: http://telemetry:4318
+    ports:
+      - "127.0.0.1:4000:4000"
+    volumes:
+      - ./server:/app
+      # Linux builds of deps and compiled code, kept apart from the host's.
+      - server-deps:/app/deps
+      - server-build:/app/_build
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # The Vite dev server, with hot reload through the bind mount.
+  web:
+    image: node:24.21.0-slim
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    environment:
+      API_URL: http://server:4000
+      OTLP_URL: http://telemetry:4318
+      # Vite can't open a browser from inside the container.
+      BROWSER: none
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./web:/app
+      # Linux node_modules, kept apart from the host's.
+      - web-node-modules:/app/node_modules
+    depends_on:
+      - server
+
 volumes:
   db-data:
   brouter-segments:
   telemetry-data:
+  server-deps:
+  server-build:
+  web-node-modules:

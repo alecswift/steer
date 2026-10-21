@@ -22,6 +22,28 @@ end
 
 config :steer, SteerWeb.Endpoint, http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
+# In Docker Compose, Phoenix runs in a container where the other services
+# aren't on localhost. Compose sets these to override the dev addresses.
+if config_env() == :dev do
+  if ip = System.get_env("PHX_IP") do
+    {:ok, ip} = ip |> String.to_charlist() |> :inet.parse_address()
+    config :steer, SteerWeb.Endpoint, http: [ip: ip]
+  end
+
+  if host = System.get_env("DATABASE_HOST") do
+    config :steer, Steer.Repo, hostname: host
+  end
+
+  if url = System.get_env("BROUTER_URL") do
+    config :steer, Steer.Routing.BRouter, base_url: url
+  end
+
+  if url = System.get_env("OTLP_ENDPOINT") do
+    config :opentelemetry_exporter, otlp_endpoint: url
+    config :opentelemetry_experimental, otlp_endpoint: url
+  end
+end
+
 if config_env() == :prod do
   database_url =
     System.get_env("DATABASE_URL") ||
