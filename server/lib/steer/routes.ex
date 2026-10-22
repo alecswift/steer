@@ -32,8 +32,9 @@ defmodule Steer.Routes do
 
   @doc """
   Creates a route for the user from `params` with string keys: `"waypoints"`
-  and `"legs"` as `build/1` takes them, and an optional `"name"`. A blank name
-  gets a generated one (see `Steer.Routes.Name`).
+  and `"legs"` as `build/1` takes them, an optional `"name"`, and an optional
+  `"date"` (ISO 8601, the hiker's local date). A blank name gets a generated
+  one from the date, or from today in UTC without one (see `Steer.Routes.Name`).
   """
   def create_route(%User{id: user_id}, params) do
     with {:ok, attrs} <- build(params) do
@@ -68,9 +69,21 @@ defmodule Steer.Routes do
     name = if is_binary(name), do: String.trim(name), else: name
 
     if name in [nil, ""],
-      do: Name.generate(user_id, attrs, Date.utc_today(), except_id),
+      do: Name.generate(user_id, attrs, date(params["date"]), except_id),
       else: name
   end
+
+  # The date for a generated name: the hiker's own `"date"` (ISO 8601), since
+  # the server's UTC date is a day ahead on an evening in the Americas, or
+  # today in UTC when it's missing or isn't a date.
+  defp date(date) when is_binary(date) do
+    case Date.from_iso8601(date) do
+      {:ok, date} -> date
+      {:error, _reason} -> Date.utc_today()
+    end
+  end
+
+  defp date(_date), do: Date.utc_today()
 
   @doc """
   Assembles a route's attributes from the editor's waypoints and legs, both

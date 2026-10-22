@@ -165,7 +165,7 @@ In view mode, the user clicks a named peak on the map. The sidebar shows the pea
 - **Desktop browser first**: the layout should not rule out phones and tablets, which are planned for later.
 - **Map data**: base map tiles come from OpenFreeMap (OSM-based vector tiles, no API key). Elevation comes from AWS Terrain Tiles (Terrarium encoding), which also feed hillshade, contours, and route elevation stats.
 - **Main use is hiking**: routing always prefers trails.
-- The map opens on a fixed default view of the Snoqualmie Pass area, covering Web Mountain, Mount Defiance, Bandera and Little Bandera Mountains, Kaleetan Peak, Snoqualmie Mountain, Guye Peak and Kendall Peak.
+- The map opens on a fixed default view of the Conejo Canyons and Wildwood in the Conejo Open Space around Thousand Oaks, California, close enough (zoom 13) that trails show.
 - Hosting and deployment are not decided yet.
 - **Peak data**: peak names, locations and elevations come from the `mountain_peak` layer already in the OpenFreeMap tiles. No extra data source is needed.
 - **Washington outline**: peak links are limited to a simplified Washington State outline made from public-domain US Census boundary files.

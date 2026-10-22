@@ -1,14 +1,9 @@
-import type { LngLatBoundsLike } from 'maplibre-gl'
-
-// The Conejo Open Space around Thousand Oaks, California: from Conejo
-// Mountain and the Conejo Canyons in the west to Lang Ranch in the east, and
-// from Lake Eleanor and the Los Robles Trail in the south to Mount Clef Ridge
-// in the north, with a little margin.
-// Bounds (not center + zoom) so the same area is framed on any screen size.
-export const defaultBounds: LngLatBoundsLike = [
-  [-118.99, 34.13],
-  [-118.79, 34.25],
-]
+// The Conejo Canyons and Wildwood, in the Conejo Open Space around Thousand
+// Oaks, California, centered on Elliott Mountain's trails.
+// A center and zoom 13 (not bounds) because OpenFreeMap's tiles have trails
+// only from zoom 13, so they show on load; the area shown grows with the
+// screen.
+export const defaultView = { center: [-118.925, 34.213] as [number, number], zoom: 13 }
 
 // Web Mercator's limit: the map covers latitudes up to about ±85.05°.
 export const maxMercatorLat = 85.0511287798

@@ -19,7 +19,8 @@ function cachedLegs() {
 
 describe('savePayload', () => {
   it('turns the waypoints and their legs into the save body', () => {
-    expect(savePayload([a, b, c], cachedLegs())).toEqual({
+    expect(savePayload([a, b, c], cachedLegs(), 'Snow Lake')).toEqual({
+      name: 'Snow Lake',
       waypoints: [
         { lon: a[0], lat: a[1] },
         { lon: b[0], lat: b[1] },
@@ -43,6 +44,13 @@ describe('savePayload', () => {
 
   it.each(['', '   '])('leaves out a blank name, so Phoenix generates one: %j', (name) => {
     expect(savePayload([a, b, c], cachedLegs(), name)).not.toHaveProperty('name')
+  })
+
+  it('sends the local date in place of a blank name, for Phoenix to name it by', () => {
+    // 11 pm on Oct 21 local time, whatever the UTC date.
+    const evening = new Date(2026, 9, 21, 23, 0)
+    expect(savePayload([a, b, c], cachedLegs(), '', evening)?.date).toBe('2026-10-21')
+    expect(savePayload([a, b, c], cachedLegs(), 'Snow Lake', evening)).not.toHaveProperty('date')
   })
 
   it('is null while a leg is pending', () => {
