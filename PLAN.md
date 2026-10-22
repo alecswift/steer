@@ -554,8 +554,9 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
   *Verify*: build a route in Svalbard.
   *Result (2026-10-21)*: a route in Longyearbyen snapped and saved at 1.86 km, 29 m gain and 144 m loss, between 15 and 159 m, sensible for the valley (PostGIS distance checked by hand there and across 180°). On a tilted map at the north edge, a click past it added no point, and clicks just inside it (85.05°) snapped and got Z.
 
-- [ ] **10.3 Routing outage**
+- [x] **10.3 Routing outage**
   *Verify*: with `docker compose stop brouter`, new legs fall back to straight lines, saves work, and no progress is lost.
+  *Result (2026-10-21)*: with BRouter stopped, each `/api/snap` answered 200 within 0.7 s with a straight leg (`snapped: false`) and Z from the DEM. In the editor, a 4-point route near Thousand Oaks drew 3 dashed straight legs across the streets, with stats (4.0 mi, 1,507 ft gain), and saved with all 4 waypoints, the same stats and its elevations. Once BRouter was started again, legs snapped within a few seconds.
 
 - [ ] **10.4 Final acceptance pass**
   Go through every acceptance scenario in SPEC.md §1 and every success criterion in §3, and record the results.
