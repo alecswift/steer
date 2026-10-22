@@ -13,7 +13,7 @@ import { RouteLayer } from '@/features/routes/RouteLayer'
 import { ContourLayer } from '@/features/terrain/ContourLayer'
 import { HillshadeLayer } from '@/features/terrain/HillshadeLayer'
 import { TrailsLayer } from '@/features/trails/TrailsLayer'
-import { baseStyleUrl, defaultBounds, maxMercatorLat } from '@/map/config'
+import { baseStyleUrl, defaultView, maxMercatorLat } from '@/map/config'
 import { metrics, track } from '@/telemetry'
 import type { SelectedRoute } from './selection'
 
@@ -115,7 +115,13 @@ export function MapView({
 
   return (
     <Map
-      initialViewState={{ bounds: defaultBounds, fitBoundsOptions: { padding: defaultViewPadding() } }}
+      // Fitting the center as a point, capped at the zoom, centers it beside
+      // the sidebar without keeping the padding for later views, as a padded
+      // center and zoom would.
+      initialViewState={{
+        bounds: [defaultView.center, defaultView.center],
+        fitBoundsOptions: { padding: defaultViewPadding(), maxZoom: defaultView.zoom },
+      }}
       style={{ width: '100%', height: '100%' }}
       mapStyle={baseStyleUrl}
       onLoad={reportLoaded}

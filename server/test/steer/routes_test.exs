@@ -248,6 +248,16 @@ defmodule Steer.RoutesTest do
       assert user |> Routes.list_routes() |> Enum.map(& &1.name) |> Enum.uniq() |> length() == 4
     end
 
+    test "create_route/2 generates the name from the hiker's date, or today in UTC", %{user: user} do
+      assert {:ok, %{name: "0.7 mi route · Oct 21"}} =
+               Routes.create_route(user, Map.put(params(), "date", "2026-10-21"))
+
+      for date <- ["Oct 21", "2026-13-01", 20_261_021] do
+        assert {:ok, route} = Routes.create_route(user, Map.put(params(), "date", date))
+        assert route.name =~ ~r/^0\.7 mi route · #{today()}( \(\d\))?$/
+      end
+    end
+
     test "create_route/2 returns build and changeset errors", %{user: user} do
       assert {:error, changeset} = Routes.create_route(user, Map.delete(params(), "legs"))
       assert %{legs: [_]} = errors_on(changeset)
