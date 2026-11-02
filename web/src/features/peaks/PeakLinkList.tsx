@@ -107,13 +107,13 @@ function HikeCard({ link }: { link: PeakLink }) {
   )
 }
 
-/** Links from a peak to SummitPost, Peakbagger and WTA: exact pages where known, searches otherwise. */
+/** Links from a peak to SummitPost, Peakbagger and WTA (see `peakLinks`): exact pages where known, searches otherwise. */
 export function PeakLinkList({ peak }: { peak: Peak }) {
   const links = usePeakLinks(peak)
 
   if (links === null) return <div className="peak-links" aria-busy="true" />
   if (links.length === 0) {
-    return <p className="peak-links peak-links-note">Links are available for Washington peaks only.</p>
+    return <p className="peak-links peak-links-note">Links are available for US peaks only.</p>
   }
 
   return (

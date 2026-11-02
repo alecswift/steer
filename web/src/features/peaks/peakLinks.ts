@@ -1,5 +1,6 @@
 import { log } from '@/telemetry'
 import type { Peak } from './peak'
+import { isInUnitedStates } from './unitedStates'
 import { isInWashington } from './washington'
 
 export type PeakLinkSite = 'summitpost' | 'peakbagger' | 'wta'
@@ -26,6 +27,8 @@ const HIKE_KM = 10 // trailheads are often several km from the summit
 const MAX_HIKES = 3
 
 const SITES: PeakLinkSite[] = ['summitpost', 'peakbagger', 'wta']
+// The sites that cover the whole country. WTA covers only Washington.
+const NATIONAL_SITES: PeakLinkSite[] = ['summitpost', 'peakbagger']
 
 // Each site's own name search, in the form its search page submits (checked
 // against captured searches on 2026-09-28): SummitPost's mountain list,
@@ -41,6 +44,12 @@ const searchUrls: Record<PeakLinkSite, (name: string) => string> = {
 // with its Lushootseed name. Each part is matched on its own, and searches use
 // the first.
 const nameParts = (name: string) => name.split(/\s+\/\s+/).filter(Boolean)
+
+const searchLink = (site: PeakLinkSite, peak: Peak): PeakLink => ({
+  site,
+  kind: 'search',
+  url: searchUrls[site](nameParts(peak.name)[0] ?? peak.name),
+})
 
 // "Mt. St. Helens" and "Mount Saint Helens" both give "mount saint helens".
 export function normalizeName(name: string): string {
@@ -113,16 +122,20 @@ function matchingHikes(names: string[], peak: Peak, entries: WtaHike[]): WtaHike
 /** Links for a peak in Washington: each site's exact pages where the indexes have them, and its search otherwise. None outside Washington. */
 export function matchLinks(peak: Peak, indexes: LinkIndexes): PeakLink[] {
   if (!isInWashington(peak.lon, peak.lat)) return []
-  const parts = nameParts(peak.name)
-  const names = parts.map(normalizeName).filter(Boolean)
+  const names = nameParts(peak.name).map(normalizeName).filter(Boolean)
   return SITES.flatMap((site): PeakLink[] => {
     const exact =
       site === 'wta'
         ? matchingHikes(names, peak, indexes.wta).map(({ url, name, lengthMi, gainFt }) => ({ url, title: name, lengthMi, gainFt }))
         : [exactPage(names, peak, indexes[site])].flatMap((entry) => (entry ? [{ url: entry.url }] : []))
     if (exact.length > 0) return exact.map((link) => ({ site, kind: 'exact', ...link }))
-    return [{ site, kind: 'search', url: searchUrls[site](parts[0] ?? peak.name) }]
+    return [searchLink(site, peak)]
   })
+}
+
+/** Links for a US peak outside Washington: SummitPost and Peakbagger searches, since the indexes and WTA cover only Washington. */
+export function nationalLinks(peak: Peak): PeakLink[] {
+  return NATIONAL_SITES.map((site) => searchLink(site, peak))
 }
 
 const noIndexes: LinkIndexes = { summitpost: [], peakbagger: [], wta: [] }
@@ -137,9 +150,9 @@ function loadIndexes(): Promise<LinkIndexes> {
   return indexes
 }
 
-/** Links for a peak (see `matchLinks`), loading the link indexes the first time a Washington peak needs them. */
+/** Links for a peak: `matchLinks` in Washington, loading the link indexes the first time; `nationalLinks` elsewhere in the US; none outside it. */
 export async function peakLinks(peak: Peak): Promise<PeakLink[]> {
-  if (!isInWashington(peak.lon, peak.lat)) return []
+  if (!isInWashington(peak.lon, peak.lat)) return outsideWashington(peak)
   try {
     return matchLinks(peak, await loadIndexes())
   } catch (error) {
@@ -147,5 +160,15 @@ export async function peakLinks(peak: Peak): Promise<PeakLink[]> {
     indexes = undefined
     log.error('Could not load the peak link indexes', { 'error.source': 'peak_links' }, error)
     return matchLinks(peak, noIndexes)
+  }
+}
+
+async function outsideWashington(peak: Peak): Promise<PeakLink[]> {
+  try {
+    return (await isInUnitedStates(peak.lon, peak.lat)) ? nationalLinks(peak) : []
+  } catch (error) {
+    // Searches work for any peak, so they're shown rather than nothing.
+    log.error('Could not load the US outline', { 'error.source': 'peak_links' }, error)
+    return nationalLinks(peak)
   }
 }

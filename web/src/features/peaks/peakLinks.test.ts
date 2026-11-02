@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Peak } from './peak'
-import { matchLinks, normalizeName, peakLinks, type LinkEntry, type LinkIndexes } from './peakLinks'
+import { matchLinks, nationalLinks, normalizeName, peakLinks, type LinkEntry, type LinkIndexes } from './peakLinks'
 import peakbagger from './data/peakbagger.json'
 import summitpost from './data/summitpost.json'
 import wta from './data/wta.json'
@@ -107,7 +107,26 @@ describe('peakLinks', () => {
     expect(urls(await peakLinks(kendall), 'summitpost')).toEqual(['exact https://www.summitpost.org/kendall-peak/151396'])
   })
 
-  it('gives no links outside Washington', async () => {
-    expect(await peakLinks(peak('Mount Hood', -121.69588, 45.37351))).toEqual([])
+  it('gives SummitPost and Peakbagger searches elsewhere in the US', async () => {
+    const hood = peak('Mount Hood', -121.69588, 45.37351)
+    expect(await peakLinks(hood)).toEqual(nationalLinks(hood))
+    expect(await peakLinks(peak('Denali', -151.0074, 63.0695))).toHaveLength(2)
+  })
+
+  it('gives no links outside the US', async () => {
+    expect(await peakLinks(peak('Slesse Mountain', -121.59746, 49.02541))).toEqual([])
+  })
+})
+
+describe('nationalLinks', () => {
+  it('searches SummitPost and Peakbagger by the first name, without WTA', () => {
+    expect(nationalLinks(peak('Mount Whitney / Too-man-i-goo-yah', -118.2923, 36.5785))).toEqual([
+      {
+        site: 'summitpost',
+        kind: 'search',
+        url: 'https://www.summitpost.org/object_list.php?object_type=1&object_name_1=Mount+Whitney',
+      },
+      { site: 'peakbagger', kind: 'search', url: 'https://www.peakbagger.com/search.aspx?tid=M&ss=Mount+Whitney' },
+    ])
   })
 })
