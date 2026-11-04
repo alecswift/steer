@@ -58,6 +58,26 @@
   color: var(--color-text-muted);
 }
 
+/* Shown while the route runs on ways tagged foot=no: a swatch of the map's
+   amber line, cased like it, then what it means. */
+.edit-toolbar-foot-no {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-4) 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.edit-toolbar-foot-no-swatch {
+  flex: none;
+  width: 1.25rem;
+  height: 0.375rem;
+  border-radius: 999px;
+  background: var(--map-closed-trail);
+  box-shadow: 0 0 0 1px rgba(58, 38, 20, 0.55);
+}
+
 /* One row of four, each tool its icon over its name. Tools pull out by
    their own padding, like the sidebar's rows, so the first icon lines up
    with the title. */

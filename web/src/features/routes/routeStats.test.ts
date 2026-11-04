@@ -12,6 +12,7 @@ const leg = (status: RouteLeg['status'], coordinates: GeoJSON.Position[]): Route
   to: [coordinates[coordinates.length - 1][0], coordinates[coordinates.length - 1][1]],
   status,
   coordinates,
+  footNo: [],
 })
 
 describe('haversineM', () => {

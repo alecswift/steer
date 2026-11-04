@@ -18,10 +18,16 @@ defmodule SteerWeb.SnapControllerTest do
     :ok
   end
 
-  defp brouter_track(coordinates) do
+  defp brouter_track(coordinates, messages \\ nil) do
     Jason.encode!(%{
       "type" => "FeatureCollection",
-      "features" => [%{"type" => "Feature", "geometry" => %{"coordinates" => coordinates}}]
+      "features" => [
+        %{
+          "type" => "Feature",
+          "properties" => %{"messages" => messages},
+          "geometry" => %{"coordinates" => coordinates}
+        }
+      ]
     })
   end
 
@@ -35,8 +41,23 @@ defmodule SteerWeb.SnapControllerTest do
       assert conn |> snap(%{from: @summit, to: @north}) |> json_response(200) == %{
                "type" => "Feature",
                "geometry" => %{"type" => "LineString", "coordinates" => track},
-               "properties" => %{"snapped" => true}
+               "properties" => %{"snapped" => true, "foot_no" => []}
              }
+    end
+
+    test "gives a snapped leg's stretches on ways tagged foot=no", %{conn: conn} do
+      track = [[-121.4163, 47.4587, 1890.5], [-121.4162, 47.4613, 1720.25]]
+
+      messages = [
+        ["Longitude", "Latitude", "Distance", "WayTags"],
+        ["-121416300", "47458700", "0", "highway=path"],
+        ["-121416200", "47461300", "290", "highway=path foot=no bicycle=no"]
+      ]
+
+      Req.Test.stub(BRouter, &Plug.Conn.send_resp(&1, 200, brouter_track(track, messages)))
+
+      assert %{"properties" => %{"snapped" => true, "foot_no" => [[0, 1]]}} =
+               conn |> snap(%{from: @summit, to: @north}) |> json_response(200)
     end
 
     test "returns a straight leg with Z from the DEM when there's no route", %{conn: conn} do
@@ -45,7 +66,7 @@ defmodule SteerWeb.SnapControllerTest do
 
       assert %{
                "geometry" => %{"type" => "LineString", "coordinates" => coordinates},
-               "properties" => %{"snapped" => false}
+               "properties" => %{"snapped" => false, "foot_no" => []}
              } = conn |> snap(%{from: @summit, to: @north}) |> json_response(200)
 
       assert hd(coordinates) == @summit ++ [@summit_z]

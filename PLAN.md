@@ -13,6 +13,7 @@ These were settled while planning and resolve open items in the spec.
 | Topic | Decision |
 |---|---|
 | Routing engine (FR-012) | **Self-hosted BRouter**, called only by Phoenix through a `Steer.Routing` adapter. The frontend never talks to BRouter directly. |
+| Trails closed to hikers | Ways tagged `foot=no` are a **last resort, not forbidden** (chunk 11.1): Steer's own `steer-hiking` profile adds 20 to their cost factor, so a leg clicked along one still snaps, but a route between other points doesn't wander onto it. The editor draws those stretches in amber with a note in the toolbar. |
 | Segment files | **The whole world, downloaded upfront** (about 10 GB) by a one-shot `brouter-segments` compose service, run by hand. Chosen in chunk 6.2. |
 | Elevation source | Snapped legs use **BRouter's Z values**. Straight fallback legs get Z sampled from **AWS Terrarium tiles in Phoenix**, as do the rare snapped vertices BRouter has no elevation for. |
 | Repo layout | `web/` (Vite + React) and `server/` (Phoenix). `docker-compose.yml` at the root. |
@@ -70,7 +71,7 @@ These were settled while planning and resolve open items in the spec.
 | `route.shown` | event | `route_id`, `select_to_fit_ms`: from the `route.selected` click until the map first shows the route and starts framing it. The **SC-003** panels (p95 under 100 ms) read it from Loki, like SC-006 | 4.3 |
 | `editor.opened` | event | `mode` (new / existing) | 5.1, 9.2 |
 | `editor.point_added`, `editor.undo`, `editor.redo`, `editor.cleared`, `editor.loop_closed` | events | `point_count` | 5.3, 5.4 |
-| `steer.routing.brouter` | span | `http.response.status_code`, `no_route`; error status on failures other than no route | 6.4 |
+| `steer.routing.brouter` | span | `http.response.status_code`, `no_route`; error status on failures other than no route; `foot_no` (11.1), whether a snapped leg runs on ways tagged `foot=no` | 6.4, 11.1 |
 | `steer.snap.fallback` | counter | `reason` (no_route / timeout / error) | 6.7 |
 | `steer.dem.tile_cache` | counter | `result` (hit / miss) | 6.5 |
 | `steer.snap.duration_ms` | histogram (server and client) | `snapped`; told apart by `service_name`. The client's runs from adding a point until its leg arrives | 6.8, 7.3 |
@@ -424,7 +425,7 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
 ## Phase 6: Routing engine (BRouter behind Phoenix)
 
 - [x] **6.1 BRouter in Docker Compose**
-  Add a `brouter` service (built from upstream v1.7.10, see "Open questions") on `localhost:17777`, with a `brouter-segments` volume. No custom profiles volume is needed: 6.3 tunes a stock profile with a request parameter.
+  Add a `brouter` service (built from upstream v1.7.10, see "Open questions") on `localhost:17777`, with a `brouter-segments` volume. No custom profiles volume was needed then: 6.3 tunes a stock profile with a request parameter. 11.1 later mounts Steer's own profile, `brouter/profiles/steer-hiking.brf`, into `/profiles2`.
   *Verify*: the container starts and answers HTTP requests.
 
 - [x] **6.2 Solve segment acquisition** *(the deferred decision)*
@@ -432,7 +433,7 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
   *Verify*: a `curl` straight to BRouter for an A→B pair near Snoqualmie Pass returns a GeoJSON track with elevation.
 
 - [x] **6.3 Hiking profile**
-  The stock `hiking-mountain` profile, with its `path_preference` raised from 0 to 10 by a `profile:path_preference=10` request parameter, so no custom profile file is needed. It adds 10 to the cost factor of every way that isn't a path, footway, track or road, so trails beat roads. On the pairs checked near Snoqualmie Pass, any value from 3 to 20 gave the same routes.
+  The stock `hiking-mountain` profile, with its `path_preference` raised from 0 to 10 by a `profile:path_preference=10` request parameter, so no custom profile file was needed (11.1 later moved it onto Steer's own copy of the profile, `steer-hiking`, with the same parameter). It adds 10 to the cost factor of every way that isn't a path, footway, track or road, so trails beat roads. On the pairs checked near Snoqualmie Pass, any value from 3 to 20 gave the same routes.
   *Verify*: for a known pair of points with both a trail and a road between them, the result follows the trail (SC-005). From the Pacific Crest Trail access at Snoqualmie Pass (-121.4133, 47.42769) to the Source Lake Trail (-121.45167, 47.45762), the stock profile walks 2.4 km of Alpental Road and the tuned one stays on trails (7.5 km, 14 m of road).
 
 - [x] **6.4 `Steer.Routing` behaviour and BRouter adapter**
@@ -579,13 +580,25 @@ This phase is frontend-only and uses data the map tiles already contain, plus li
 
 ---
 
+## Phase 11: After the MVP
+
+- [x] **11.1 Trails closed to hikers (`foot=no`)** *(UI)*
+  The stock profile forbids ways tagged both `foot=no` and `bicycle=no`, so a leg clicked along one, like the Western Ridge Trail on Boney Mountain (way 226012585, `informal=yes`), fell back to straight ("island detected", "no track found").
+  - `brouter/profiles/steer-hiking.brf` is the stock `hiking-mountain` with one change: a way tagged `foot=no` adds `foot_no_penalty` (20) to its cost factor instead of being forbidden, whether or not bicycles may use it (the stock profile added only 4 when they may). Compose mounts it into `/profiles2`, and `Steer.Routing.BRouter` asks for `profile=steer-hiking`, still with `path_preference=10`.
+  - The adapter reads BRouter's `messages` (each row ends a stretch at one of the line's vertices, with that stretch's `WayTags`) and returns the stretches on `foot=no` ways as `[first, last]` vertex indices. `/api/snap` sends them as `properties.foot_no`; a straight leg's is empty.
+  - The editor draws each stretch over its leg in amber (`closedTrail`, `#ff9a1f`, apart from the route's red-orange) with a thin dark casing, and the toolbar says "Orange marks trails closed to hikers (foot=no)." while the route has one. It isn't stored: a saved route, and a route loaded into the editor, shows no amber.
+
+  *Verify*: ExUnit and Vitest tests. Legs along the Western Ridge Trail snap (740 m with 545 m on `foot=no`, and 972 m all on it). From the trail's south end to the Boney Mountain trailhead, the route still takes 7.5 km of legal trail and no `foot=no`, and the 6.3 Snoqualmie pair is unchanged (7,466 m, 14 m of road). In the editor, those legs drew amber with the note, and the span's `foot_no` showed in Tempo.
+
+---
+
 ## Requirement coverage
 
 | Requirement | Chunks |
 |---|---|
 | FR-001 Map layers; selected saved route in view mode and active route in edit mode | 0.4, 4.3, 5.3, 9.2 |
 | FR-002 View and edit modes | 5.1, 9.2 |
-| FR-003 Click to add and snap, trails preferred | 5.3, 6.3, 6.4, 7.3 |
+| FR-003 Click to add and snap, trails preferred | 5.3, 6.3, 6.4, 7.3, 11.1 |
 | FR-004 Straight-line fallback | 6.7, 7.4 |
 | FR-005 Undo, redo, clear, close loop | 5.2, 5.4 |
 | FR-006 Save with an optional or generated name | 3.6, 8.3 |

@@ -20,7 +20,8 @@ export type LoadedRoute = { waypoints: LngLat[]; legs: LegCache }
  *
  * Whether a leg was snapped isn't stored, so it's told from the geometry:
  * a straight leg, whether Phoenix or the editor fell back to it, ends exactly
- * on the clicked point, and a snapped leg ends on the nearest trail.
+ * on the clicked point, and a snapped leg ends on the nearest trail. Nor is
+ * where a leg runs on ways tagged foot=no, so loaded legs have no `footNo`.
  */
 export function loadRoute(route: Route): LoadedRoute {
   const { coordinates } = route.geometry
@@ -31,7 +32,11 @@ export function loadRoute(route: Route): LoadedRoute {
     const leg = coordinates.slice(stored[i - 1].geometry_index, stored[i].geometry_index + 1)
     const [lon, lat] = leg[leg.length - 1]
     const straight = lon === stored[i].lon && lat === stored[i].lat
-    legs.set(legKey(waypoints[i - 1], waypoints[i]), { status: straight ? 'straight' : 'snapped', coordinates: leg })
+    legs.set(legKey(waypoints[i - 1], waypoints[i]), {
+      status: straight ? 'straight' : 'snapped',
+      coordinates: leg,
+      footNo: [],
+    })
   }
   return { waypoints, legs }
 }

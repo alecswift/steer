@@ -5,15 +5,16 @@
 // rather than changing the one it's given.
 
 import type { LngLat } from './editor'
-import type { SnappedLeg } from './snap'
+import type { FootNoRange, SnappedLeg } from './snap'
 
 export type LegStatus = 'pending' | 'snapped' | 'straight'
 
 export type CachedLeg =
   | { status: 'pending' }
   // `straight` is a leg drawn as a straight line: one Phoenix fell back to,
-  // or one the client fell back to when the snap request failed.
-  | { status: 'snapped' | 'straight'; coordinates: GeoJSON.Position[] }
+  // or one the client fell back to when the snap request failed. `footNo` is
+  // where it runs on ways tagged foot=no (see `SnappedLeg`).
+  | { status: 'snapped' | 'straight'; coordinates: GeoJSON.Position[]; footNo: FootNoRange[] }
 
 export type LegCache = ReadonlyMap<string, CachedLeg>
 
@@ -24,6 +25,7 @@ export type RouteLeg = {
   to: LngLat
   status: LegStatus
   coordinates: GeoJSON.Position[]
+  footNo: FootNoRange[]
 }
 
 export const emptyLegCache: LegCache = new Map()
@@ -61,7 +63,11 @@ export function requestLegs(
 /** Caches the leg Phoenix returned for `from` to `to`. */
 export function resolveLeg(cache: LegCache, from: LngLat, to: LngLat, leg: SnappedLeg): LegCache {
   const next = new Map(cache)
-  next.set(legKey(from, to), { status: leg.snapped ? 'snapped' : 'straight', coordinates: leg.coordinates })
+  next.set(legKey(from, to), {
+    status: leg.snapped ? 'snapped' : 'straight',
+    coordinates: leg.coordinates,
+    footNo: leg.footNo,
+  })
   return next
 }
 
@@ -72,7 +78,7 @@ export function resolveLeg(cache: LegCache, from: LngLat, to: LngLat, leg: Snapp
  */
 export function failLeg(cache: LegCache, from: LngLat, to: LngLat): LegCache {
   const next = new Map(cache)
-  next.set(legKey(from, to), { status: 'straight', coordinates: [from, to] })
+  next.set(legKey(from, to), { status: 'straight', coordinates: [from, to], footNo: [] })
   return next
 }
 
@@ -98,7 +104,7 @@ export function routeLegs(cache: LegCache, waypoints: LngLat[]): RouteLeg[] {
   return legPairs(waypoints).map(([from, to]) => {
     const leg = cache.get(legKey(from, to))
     return leg && leg.status !== 'pending'
-      ? { from, to, status: leg.status, coordinates: leg.coordinates }
-      : { from, to, status: 'pending', coordinates: [from, to] }
+      ? { from, to, status: leg.status, coordinates: leg.coordinates, footNo: leg.footNo }
+      : { from, to, status: 'pending', coordinates: [from, to], footNo: [] }
   })
 }

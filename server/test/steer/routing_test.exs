@@ -45,7 +45,7 @@ defmodule Steer.RoutingTest do
       # No tile is fetched: Req.Test fails any request to Tiles without a stub.
 
       assert Steer.Routing.snap_or_straight(@summit, @north) ==
-               {:ok, %{coordinates: track, snapped: true}}
+               {:ok, %{coordinates: track, snapped: true, foot_no: []}}
     end
 
     test "fills a snapped leg's missing elevations from the DEM" do
@@ -61,7 +61,8 @@ defmodule Steer.RoutingTest do
                     [-121.4162, 47.4600, 1800.0],
                     @north ++ [@north_z]
                   ],
-                  snapped: true
+                  snapped: true,
+                  foot_no: []
                 }}
     end
 
@@ -70,7 +71,7 @@ defmodule Steer.RoutingTest do
         Req.Test.stub(BRouter, &brouter_failure(&1, unquote(failure)))
         Req.Test.expect(Tiles, &Plug.Conn.send_resp(&1, 200, @tile))
 
-        assert {:ok, %{coordinates: coordinates, snapped: false}} =
+        assert {:ok, %{coordinates: coordinates, snapped: false, foot_no: []}} =
                  Steer.Routing.snap_or_straight(@summit, @north)
 
         # From the clicked point to the other, every 30 m or less (see

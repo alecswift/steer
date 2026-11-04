@@ -12,7 +12,7 @@ const b: LngLat = [-121.4301, 47.4402]
 const c: LngLat = [-121.45167, 47.45762]
 
 function snapped(from: LngLat, to: LngLat): SnappedLeg {
-  return { coordinates: [[...from, 1000], [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2, 1100], [...to, 1200]], snapped: true }
+  return { coordinates: [[...from, 1000], [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2, 1100], [...to, 1200]], snapped: true, footNo: [] }
 }
 
 // A snap request the test answers by hand.
@@ -92,7 +92,7 @@ describe('LegSnapper', () => {
   it('keeps a leg Phoenix fell back to as straight', async () => {
     const t = setup()
     t.edit(add(a), add(b))
-    t.requests[0].resolve({ ...snapped(a, b), snapped: false })
+    t.requests[0].resolve({ ...snapped(a, b), snapped: false, footNo: [] })
     await settle()
     expect(t.legs()).toEqual(['straight'])
     expect(record).toHaveBeenCalledWith(expect.any(Number), { snapped: false })
@@ -210,8 +210,8 @@ describe('LegSnapper', () => {
     const t = setup()
     t.snapper.load(
       new Map([
-        [legKey(a, b), { status: 'snapped', coordinates: snapped(a, b).coordinates }],
-        [legKey(b, c), { status: 'straight', coordinates: [a, c] }],
+        [legKey(a, b), { status: 'snapped', coordinates: snapped(a, b).coordinates, footNo: [] }],
+        [legKey(b, c), { status: 'straight', coordinates: [a, c], footNo: [] }],
       ]),
     )
     t.edit(add(a), add(b), add(c))

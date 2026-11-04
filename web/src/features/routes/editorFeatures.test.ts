@@ -71,7 +71,7 @@ describe('editorFeatures', () => {
   it('draws a finished leg with its geometry and status', () => {
     const coordinates = [[...a, 1000], [-121.405, 47.426, 1100], [...b, 1200]]
     const { cache } = requestLegs(emptyLegCache, [a, b, c])
-    const resolved = resolveLeg(cache, a, b, { coordinates, snapped: true })
+    const resolved = resolveLeg(cache, a, b, { coordinates, snapped: true, footNo: [] })
     const lines = editorFeatures([a, b, c], routeLegs(resolved, [a, b, c])).features.filter(
       (f) => f.geometry.type === 'LineString',
     )
@@ -79,5 +79,29 @@ describe('editorFeatures', () => {
       [{ status: 'snapped' }, coordinates],
       [{ status: 'pending' }, [b, c]],
     ])
+  })
+
+  it('draws each stretch on ways tagged foot=no over its leg, after the legs', () => {
+    const coordinates = [[...a, 1000], [-121.407, 47.423, 1050], [-121.403, 47.427, 1100], [...b, 1200]]
+    const { cache } = requestLegs(emptyLegCache, [a, b])
+    const resolved = resolveLeg(cache, a, b, { coordinates, snapped: true, footNo: [[1, 2]] })
+    const lines = editorFeatures([a, b], routeLegs(resolved, [a, b])).features.filter(
+      (f) => f.geometry.type === 'LineString',
+    )
+    expect(lines.map((f) => [f.properties, f.geometry.coordinates])).toEqual([
+      [{ status: 'snapped' }, coordinates],
+      [{ footNo: true }, coordinates.slice(1, 3)],
+    ])
+  })
+
+  it('draws a foot=no stretch across ±180° the short way, like its leg', () => {
+    const coordinates = [[179.99, -16.8], [-179.99, -16.8], [-179.98, -16.8]]
+    const from: LngLat = [179.99, -16.8]
+    const to: LngLat = [-179.98, -16.8]
+    const { cache } = requestLegs(emptyLegCache, [from, to])
+    const resolved = resolveLeg(cache, from, to, { coordinates, snapped: true, footNo: [[0, 1]] })
+    const [, stretch] = editorFeatures([from, to], routeLegs(resolved, [from, to])).features
+    const [, end] = (stretch.geometry as GeoJSON.LineString).coordinates
+    expect(end[0]).toBeCloseTo(180.01, 9)
   })
 })

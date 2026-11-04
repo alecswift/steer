@@ -15,7 +15,7 @@ const leg = {
       [-121.45167, 47.45762, 1350.0],
     ],
   },
-  properties: { snapped: true },
+  properties: { snapped: true, foot_no: [] },
 }
 
 function mockFetch(response: Response) {
@@ -34,6 +34,7 @@ describe('snapLeg', () => {
     await expect(snapLeg(from, to)).resolves.toEqual({
       coordinates: leg.geometry.coordinates,
       snapped: true,
+      footNo: [],
     })
     expect(fetchMock).toHaveBeenCalledWith('/api/snap', {
       method: 'POST',
@@ -41,6 +42,16 @@ describe('snapLeg', () => {
       body: JSON.stringify({ from, to }),
       signal: undefined,
     })
+  })
+
+  it('returns the stretches on ways tagged foot=no', async () => {
+    mockFetch(Response.json({ ...leg, properties: { snapped: true, foot_no: [[0, 1]] } }))
+    await expect(snapLeg(from, to)).resolves.toMatchObject({ footNo: [[0, 1]] })
+  })
+
+  it('reads a leg without foot_no as having none', async () => {
+    mockFetch(Response.json({ ...leg, properties: { snapped: true } }))
+    await expect(snapLeg(from, to)).resolves.toMatchObject({ footNo: [] })
   })
 
   it('returns a straight leg Phoenix fell back to', async () => {
@@ -77,6 +88,11 @@ describe('snapLeg', () => {
     { ...leg, geometry: { type: 'LineString', coordinates: [[-121.4133, 47.42769, 921.5]] } },
     { ...leg, properties: {} },
     { ...leg, properties: { snapped: 'true' } },
+    { ...leg, properties: { snapped: true, foot_no: [[0, 3]] } },
+    { ...leg, properties: { snapped: true, foot_no: [[1, 1]] } },
+    { ...leg, properties: { snapped: true, foot_no: [[0.5, 2]] } },
+    { ...leg, properties: { snapped: true, foot_no: [0, 2] } },
+    { ...leg, properties: { snapped: true, foot_no: 'none' } },
   ])('rejects a successful response that isn\'t a leg: %j', async (body) => {
     mockFetch(Response.json(body))
     const request = snapLeg(from, to)

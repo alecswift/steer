@@ -111,6 +111,7 @@ function Tool({ label, icon, enabled, onClick }: ToolProps) {
 
 /**
  * The edit-mode panel: what to do next, the route's stats once it has a leg,
+ * a note when it runs on trails tagged foot=no,
  * the history tools, each enabled only when its action is possible, and the
  * buttons that leave edit mode: Save route, through the save dialog, and
  * Cancel, which asks first when there are unsaved changes.
@@ -151,6 +152,12 @@ export function EditToolbar({ route, editor, legs, unsaved, openedAt, onAction, 
         {status(waypoints)}
       </p>
       {legs.length > 0 && <Stats stats={stats} />}
+      {legs.some((leg) => leg.footNo.length > 0) && (
+        <p className="edit-toolbar-foot-no">
+          <span className="edit-toolbar-foot-no-swatch" aria-hidden="true" />
+          Orange marks trails closed to hikers (foot=no).
+        </p>
+      )}
       <div className="edit-toolbar-tools" role="toolbar" aria-label="Route tools">
         <Tool label="Undo" icon={<UndoIcon />} enabled={canUndo(editor)} onClick={() => onAction({ type: 'UNDO' })} />
         <Tool label="Redo" icon={<RedoIcon />} enabled={canRedo(editor)} onClick={() => onAction({ type: 'REDO' })} />

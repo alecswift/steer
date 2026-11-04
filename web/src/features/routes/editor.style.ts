@@ -13,7 +13,7 @@ export const editorSnappedLegLayerStyle: LineLayerSpecification = {
   id: 'editor-legs-snapped',
   type: 'line',
   source: editorSourceId,
-  filter: ['all', ['==', ['geometry-type'], 'LineString'], ['==', ['get', 'status'], 'snapped']],
+  filter: ['all', ['has', 'status'], ['==', ['get', 'status'], 'snapped']],
   layout: legLayout,
   paint: {
     'line-color': mapColors.route,
@@ -28,13 +28,43 @@ export const editorStraightLegLayerStyle: LineLayerSpecification = {
   id: 'editor-legs-straight',
   type: 'line',
   source: editorSourceId,
-  filter: ['all', ['==', ['geometry-type'], 'LineString'], ['!=', ['get', 'status'], 'snapped']],
+  filter: ['all', ['has', 'status'], ['!=', ['get', 'status'], 'snapped']],
   layout: legLayout,
   paint: {
     'line-color': mapColors.route,
     'line-width': 3,
     'line-dasharray': [1.5, 1.5],
     'line-opacity': ['case', ['==', ['get', 'status'], 'pending'], 0.55, 1],
+  },
+}
+
+// A stretch on ways tagged foot=no (mapped as closed to hikers) is drawn
+// over its leg in amber, with a thin dark casing so it holds on the light
+// base map and reads apart from the red-orange route.
+const footNoFilter: LineLayerSpecification['filter'] = ['has', 'footNo']
+
+export const editorFootNoCasingLayerStyle: LineLayerSpecification = {
+  id: 'editor-legs-foot-no-casing',
+  type: 'line',
+  source: editorSourceId,
+  filter: footNoFilter,
+  layout: legLayout,
+  paint: {
+    'line-color': mapColors.peak,
+    'line-width': 6,
+    'line-opacity': 0.55,
+  },
+}
+
+export const editorFootNoLayerStyle: LineLayerSpecification = {
+  id: 'editor-legs-foot-no',
+  type: 'line',
+  source: editorSourceId,
+  filter: footNoFilter,
+  layout: legLayout,
+  paint: {
+    'line-color': mapColors.closedTrail,
+    'line-width': 4,
   },
 }
 

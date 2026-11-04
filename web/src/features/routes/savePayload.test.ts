@@ -12,8 +12,8 @@ const straightBC = [[...b, 1200], [...c, 1300]]
 
 // A, B, C with A to B snapped and B to C a straight leg Phoenix fell back to.
 function cachedLegs() {
-  let cache = resolveLeg(emptyLegCache, a, b, { coordinates: snappedAB, snapped: true })
-  cache = resolveLeg(cache, b, c, { coordinates: straightBC, snapped: false })
+  let cache = resolveLeg(emptyLegCache, a, b, { coordinates: snappedAB, snapped: true, footNo: [] })
+  cache = resolveLeg(cache, b, c, { coordinates: straightBC, snapped: false, footNo: [] })
   return routeLegs(cache, [a, b, c])
 }
 
@@ -54,7 +54,7 @@ describe('savePayload', () => {
   })
 
   it('is null while a leg is pending', () => {
-    const { cache } = requestLegs(resolveLeg(emptyLegCache, a, b, { coordinates: snappedAB, snapped: true }), [a, b, c])
+    const { cache } = requestLegs(resolveLeg(emptyLegCache, a, b, { coordinates: snappedAB, snapped: true, footNo: [] }), [a, b, c])
     expect(savePayload([a, b, c], routeLegs(cache, [a, b, c]))).toBeNull()
   })
 
@@ -68,9 +68,9 @@ describe('savePayload', () => {
   })
 
   it('saves a closed loop with its closing leg', () => {
-    let cache = resolveLeg(emptyLegCache, a, b, { coordinates: snappedAB, snapped: true })
-    cache = resolveLeg(cache, b, c, { coordinates: straightBC, snapped: false })
-    cache = resolveLeg(cache, c, a, { coordinates: [[...c, 1300], [...a, 1000]], snapped: true })
+    let cache = resolveLeg(emptyLegCache, a, b, { coordinates: snappedAB, snapped: true, footNo: [] })
+    cache = resolveLeg(cache, b, c, { coordinates: straightBC, snapped: false, footNo: [] })
+    cache = resolveLeg(cache, c, a, { coordinates: [[...c, 1300], [...a, 1000]], snapped: true, footNo: [] })
     const loop = [a, b, c, a]
     const payload = savePayload(loop, routeLegs(cache, loop))
     expect(payload?.waypoints).toHaveLength(4)

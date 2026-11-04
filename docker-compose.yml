@@ -30,6 +30,8 @@ services:
       - "127.0.0.1:17777:17777"
     volumes:
       - brouter-segments:/segments4
+      # Steer's own profile, beside the stock ones (Steer.Routing.BRouter).
+      - ./brouter/profiles/steer-hiking.brf:/profiles2/steer-hiking.brf:ro
 
   # One-shot download of BRouter's segment files (the whole world, about
   # 10 GB) into the brouter-segments volume. The "tools" profile keeps

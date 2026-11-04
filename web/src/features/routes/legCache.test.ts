@@ -19,7 +19,7 @@ const c: LngLat = [-121.45167, 47.45762]
 // A snapped leg with one vertex between its ends.
 function snapped(from: LngLat, to: LngLat): SnappedLeg {
   const middle = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2 + 0.001, 1100]
-  return { coordinates: [[...from, 1000], middle, [...to, 1200]], snapped: true }
+  return { coordinates: [[...from, 1000], middle, [...to, 1200]], snapped: true, footNo: [] }
 }
 
 // Requests the legs `waypoints` is missing and resolves them all as snapped,
@@ -92,6 +92,7 @@ describe('resolveLeg', () => {
     expect(resolveLeg(cache, a, b, leg).get(legKey(a, b))).toEqual({
       status: 'snapped',
       coordinates: leg.coordinates,
+      footNo: [],
     })
   })
 
@@ -101,9 +102,10 @@ describe('resolveLeg', () => {
       [...a, 1000],
       [...b, 1200],
     ]
-    expect(resolveLeg(cache, a, b, { coordinates, snapped: false }).get(legKey(a, b))).toEqual({
+    expect(resolveLeg(cache, a, b, { coordinates, snapped: false, footNo: [] }).get(legKey(a, b))).toEqual({
       status: 'straight',
       coordinates,
+      footNo: [],
     })
   })
 
@@ -117,7 +119,7 @@ describe('resolveLeg', () => {
 describe('failLeg', () => {
   it('caches a straight line between the two points', () => {
     const { cache } = requestLegs(emptyLegCache, [a, b])
-    expect(failLeg(cache, a, b).get(legKey(a, b))).toEqual({ status: 'straight', coordinates: [a, b] })
+    expect(failLeg(cache, a, b).get(legKey(a, b))).toEqual({ status: 'straight', coordinates: [a, b], footNo: [] })
   })
 
   it("doesn't request a failed leg again, so the route keeps growing", () => {
@@ -128,7 +130,7 @@ describe('failLeg', () => {
 
   it('draws a failed leg as straight, not pending', () => {
     const { cache } = requestLegs(emptyLegCache, [a, b])
-    expect(routeLegs(failLeg(cache, a, b), [a, b])).toEqual([{ from: a, to: b, status: 'straight', coordinates: [a, b] }])
+    expect(routeLegs(failLeg(cache, a, b), [a, b])).toEqual([{ from: a, to: b, status: 'straight', coordinates: [a, b], footNo: [] }])
   })
 
   it("doesn't change the cache it's given", () => {
@@ -167,16 +169,16 @@ describe('routeLegs', () => {
   it('draws pending and uncached legs as straight lines', () => {
     const { cache } = requestLegs(emptyLegCache, [a, b])
     expect(routeLegs(cache, [a, b, c])).toEqual([
-      { from: a, to: b, status: 'pending', coordinates: [a, b] },
-      { from: b, to: c, status: 'pending', coordinates: [b, c] },
+      { from: a, to: b, status: 'pending', coordinates: [a, b], footNo: [] },
+      { from: b, to: c, status: 'pending', coordinates: [b, c], footNo: [] },
     ])
   })
 
   it('returns finished legs with their cached geometry, in order', () => {
     const { cache } = snapAll(emptyLegCache, [a, b, c])
     expect(routeLegs(cache, [a, b, c])).toEqual([
-      { from: a, to: b, status: 'snapped', coordinates: snapped(a, b).coordinates },
-      { from: b, to: c, status: 'snapped', coordinates: snapped(b, c).coordinates },
+      { from: a, to: b, status: 'snapped', coordinates: snapped(a, b).coordinates, footNo: [] },
+      { from: b, to: c, status: 'snapped', coordinates: snapped(b, c).coordinates, footNo: [] },
     ])
   })
 })

@@ -3,14 +3,19 @@ defmodule Steer.Routing.BRouter do
   The `Steer.Routing` adapter for the self-hosted BRouter in Docker Compose
   (`config :steer, Steer.Routing.BRouter, base_url: ...`).
 
-  Legs use the stock `hiking-mountain` profile with `path_preference` raised
-  from 0 to 10, so that trails beat roads (SC-005). That adds 10 to the cost
-  factor of every way that isn't a path, footway, track or road, so a road
-  wins only where no trail connects. On the Snoqualmie Pass pairs checked in
-  chunk 6.3, any value from 3 to 20 gave the same routes.
+  Legs use Steer's `steer-hiking` profile (`brouter/profiles`), the stock
+  `hiking-mountain` with ways tagged `foot=no` made a last resort rather than
+  forbidden, so a leg clicked along a trail mapped as closed to hikers still
+  snaps. The adapter reports where a leg runs on such ways.
 
-  Each call is a `steer.routing.brouter` span with the HTTP status and
-  whether BRouter found no route.
+  `path_preference` is raised from 0 to 10, so that trails beat roads
+  (SC-005). That adds 10 to the cost factor of every way that isn't a path,
+  footway, track or road, so a road wins only where no trail connects. On the
+  Snoqualmie Pass pairs checked in chunk 6.3, any value from 3 to 20 gave the
+  same routes.
+
+  Each call is a `steer.routing.brouter` span with the HTTP status, whether
+  BRouter found no route, and whether the leg runs on ways tagged `foot=no`.
   """
 
   @behaviour Steer.Routing
@@ -18,7 +23,7 @@ defmodule Steer.Routing.BRouter do
   require OpenTelemetry.Tracer, as: Tracer
 
   @params [
-    profile: "hiking-mountain",
+    profile: "steer-hiking",
     "profile:path_preference": 10,
     alternativeidx: 0,
     format: "geojson"
@@ -62,8 +67,9 @@ defmodule Steer.Routing.BRouter do
 
   defp to_snap_result({:ok, %Req.Response{status: 200, body: body}}) do
     case Jason.decode(body) do
-      {:ok, %{"features" => [%{"geometry" => %{"coordinates" => [_, _ | _] = line}} | _]}} ->
-        {:ok, line}
+      {:ok,
+       %{"features" => [%{"geometry" => %{"coordinates" => [_, _ | _] = line}} = feature | _]}} ->
+        {:ok, %{line: line, foot_no: foot_no(line, get_in(feature, ["properties", "messages"]))}}
 
       _ ->
         {:error, :invalid_response}
@@ -80,6 +86,57 @@ defmodule Steer.Routing.BRouter do
   defp to_snap_result({:error, %Req.TransportError{reason: :timeout}}), do: {:error, :timeout}
   defp to_snap_result({:error, exception}), do: {:error, exception}
 
+  # BRouter's messages describe the track a stretch at a time: after a header
+  # row, each row ends a stretch at its Longitude and Latitude (millionths of
+  # a degree, at one of the line's vertices) and has that stretch's WayTags.
+  # The stretches on ways tagged foot=no become ranges of vertex indices,
+  # with touching ones joined. Rows that can't be read are skipped: the
+  # ranges only mark the line, so a leg is never lost over them.
+  defp foot_no(line, [header | rows]) when is_list(header) do
+    with lon when lon != nil <- Enum.find_index(header, &(&1 == "Longitude")),
+         lat when lat != nil <- Enum.find_index(header, &(&1 == "Latitude")),
+         tags when tags != nil <- Enum.find_index(header, &(&1 == "WayTags")) do
+      vertices =
+        line |> Enum.map(fn [lon, lat | _z] -> {micro(lon), micro(lat)} end) |> Enum.with_index()
+
+      {ranges, _vertices, _start} =
+        Enum.reduce(rows, {[], vertices, 0}, fn row, {ranges, vertices, start} ->
+          with [_ | _] <- row,
+               {:ok, point} <- message_point(Enum.at(row, lon), Enum.at(row, lat)),
+               [{_point, finish} | _] = rest <-
+                 Enum.drop_while(vertices, fn {v, _i} -> v != point end) do
+            foot_no? = "foot=no" in String.split(Enum.at(row, tags) || "")
+            {add_range(ranges, foot_no? and finish > start, start, finish), rest, finish}
+          else
+            _ -> {ranges, vertices, start}
+          end
+        end)
+
+      Enum.reverse(ranges)
+    else
+      _ -> []
+    end
+  end
+
+  defp foot_no(_line, _messages), do: []
+
+  defp add_range(ranges, false, _start, _finish), do: ranges
+  defp add_range([[first, start] | ranges], true, start, finish), do: [[first, finish] | ranges]
+  defp add_range(ranges, true, start, finish), do: [[start, finish] | ranges]
+
+  defp message_point(lon, lat) when is_binary(lon) and is_binary(lat) do
+    with {lon, ""} <- Integer.parse(lon),
+         {lat, ""} <- Integer.parse(lat) do
+      {:ok, {lon, lat}}
+    else
+      _ -> :error
+    end
+  end
+
+  defp message_point(_lon, _lat), do: :error
+
+  defp micro(degrees), do: round(degrees * 1_000_000)
+
   defp no_route?(body), do: is_binary(body) and String.contains?(body, @no_route_messages)
 
   # No route is an expected answer, not an error: the caller falls back to a
@@ -94,7 +151,7 @@ defmodule Steer.Routing.BRouter do
     Tracer.set_attributes(Map.put(status_attrs, :no_route, result == {:error, :no_route}))
 
     case result do
-      {:ok, _line} -> :ok
+      {:ok, %{foot_no: foot_no}} -> Tracer.set_attribute(:foot_no, foot_no != [])
       {:error, :no_route} -> :ok
       {:error, reason} -> Tracer.set_status(:error, inspect(reason))
     end

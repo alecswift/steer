@@ -8,7 +8,12 @@ export type SnappedLeg = {
   coordinates: GeoJSON.Position[]
   // False for a straight leg Phoenix fell back to (FR-004).
   snapped: boolean
+  // The stretches on ways tagged foot=no (mapped as closed to hikers), each
+  // `[first, last]` index into `coordinates`, inclusive.
+  footNo: FootNoRange[]
 }
+
+export type FootNoRange = [first: number, last: number]
 
 // Why a snap request failed: `network` when Phoenix couldn't be reached,
 // `server` when it answered with an error or something that isn't a leg.
@@ -59,12 +64,34 @@ export async function snapLeg(from: LngLat, to: LngLat, signal?: AbortSignal): P
   }
   const feature = body as {
     geometry?: { coordinates?: unknown }
-    properties?: { snapped?: unknown }
+    properties?: { snapped?: unknown; foot_no?: unknown }
   } | null
   const coordinates = feature?.geometry?.coordinates
   const snapped = feature?.properties?.snapped
-  if (!Array.isArray(coordinates) || coordinates.length < 2 || typeof snapped !== 'boolean') {
+  const footNo = feature?.properties?.foot_no ?? []
+  if (
+    !Array.isArray(coordinates) ||
+    coordinates.length < 2 ||
+    typeof snapped !== 'boolean' ||
+    !isFootNo(footNo, coordinates.length)
+  ) {
     throw new SnapError('server', 'POST /api/snap returned an invalid leg')
   }
-  return { coordinates: coordinates as GeoJSON.Position[], snapped }
+  return { coordinates: coordinates as GeoJSON.Position[], snapped, footNo }
+}
+
+// Ranges of indices into a leg of `length` vertices, each at least one step long.
+function isFootNo(value: unknown, length: number): value is FootNoRange[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (range) =>
+        Array.isArray(range) &&
+        range.length === 2 &&
+        range.every(Number.isInteger) &&
+        range[0] >= 0 &&
+        range[0] < range[1] &&
+        range[1] < length,
+    )
+  )
 }

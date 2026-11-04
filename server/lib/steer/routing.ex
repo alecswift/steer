@@ -36,18 +36,27 @@ defmodule Steer.Routing do
   """
   @type line :: [[number()]]
 
+  @typedoc """
+  The stretches of a leg on ways tagged `foot=no` (mapped as closed to
+  hikers), each `[first, last]` vertex index, inclusive, in order.
+  """
+  @type foot_no :: [[non_neg_integer()]]
+
   @doc """
   Finds the best path from one point to another, starting and ending at the
-  nearest points on the network rather than the clicked ones.
-  `{:error, :no_route}` means the engine has no path between them.
+  nearest points on the network rather than the clicked ones, and where it
+  runs on ways tagged `foot=no`. `{:error, :no_route}` means the engine has
+  no path between them.
   """
   @callback snap(from :: point(), to :: point()) ::
-              {:ok, line()} | {:error, :no_route | :timeout | term()}
+              {:ok, %{line: line(), foot_no: foot_no()}}
+              | {:error, :no_route | :timeout | term()}
 
   @doc """
   Snaps the leg from one point to the other, or falls back to a straight
   line with Z from the DEM whenever the routing engine fails (FR-004).
-  Returns `{:ok, %{coordinates: [[lon, lat, z]], snapped: boolean}}`,
+  Returns `{:ok, %{coordinates: [[lon, lat, z]], snapped: boolean, foot_no: foot_no}}`
+  (a straight leg's `foot_no` is empty),
   `{:error, :too_far}` when the points are more than #{div(@max_leg_m, 1000)} km apart, or
   `{:error, reason}` when the DEM can't be read either.
 
@@ -62,15 +71,16 @@ defmodule Steer.Routing do
 
   defp snap_or_sample(from, to) do
     case @adapter.snap(from, to) do
-      {:ok, line} ->
+      {:ok, %{line: line, foot_no: foot_no}} ->
+        # fill_z keeps every vertex, so foot_no's indices still hold.
         with {:ok, coordinates} <- Elevation.fill_z(line),
-             do: {:ok, %{coordinates: coordinates, snapped: true}}
+             do: {:ok, %{coordinates: coordinates, snapped: true, foot_no: foot_no}}
 
       {:error, reason} ->
         Metrics.count(:"steer.snap.fallback", %{reason: fallback_reason(reason)})
 
         with {:ok, coordinates} <- Elevation.sample_line([from, to]),
-             do: {:ok, %{coordinates: coordinates, snapped: false}}
+             do: {:ok, %{coordinates: coordinates, snapped: false, foot_no: []}}
     end
   end
 

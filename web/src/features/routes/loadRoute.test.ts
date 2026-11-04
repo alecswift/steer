@@ -65,17 +65,17 @@ describe('loadRoute', () => {
   it('splits the line at each waypoint into the legs it was joined from', () => {
     const legs = [snapped(a, b), straight(b, c)]
     const loaded = loadRoute(saved([a, b, c], [snapped(a, b), straight(b, c)]))
-    expect(loaded.legs.get(legKey(a, b))).toEqual({ status: 'snapped', coordinates: legs[0] })
+    expect(loaded.legs.get(legKey(a, b))).toEqual({ status: 'snapped', coordinates: legs[0], footNo: [] })
     // The straight leg starts at the click, away from the snapped leg's end,
     // so it gets that end too.
-    expect(loaded.legs.get(legKey(b, c))).toEqual({ status: 'straight', coordinates: [nearby(b), ...legs[1]] })
+    expect(loaded.legs.get(legKey(b, c))).toEqual({ status: 'straight', coordinates: [nearby(b), ...legs[1]], footNo: [] })
   })
 
   it('splits legs that shared a joint vertex at that vertex', () => {
     const legs = [straight(a, b), straight(b, c)]
     const loaded = loadRoute(saved([a, b, c], legs))
-    expect(loaded.legs.get(legKey(a, b))).toEqual({ status: 'straight', coordinates: legs[0] })
-    expect(loaded.legs.get(legKey(b, c))).toEqual({ status: 'straight', coordinates: legs[1] })
+    expect(loaded.legs.get(legKey(a, b))).toEqual({ status: 'straight', coordinates: legs[0], footNo: [] })
+    expect(loaded.legs.get(legKey(b, c))).toEqual({ status: 'straight', coordinates: legs[1], footNo: [] })
   })
 
   it('tells a snapped leg from a straight one by where it ends', () => {

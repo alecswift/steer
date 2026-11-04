@@ -3,27 +3,40 @@ import { isLoopClosed, type LngLat } from './editor'
 import type { LegStatus, RouteLeg } from './legCache'
 
 export type LegProperties = { status: LegStatus }
+export type FootNoProperties = { footNo: true }
 export type WaypointProperties = { start: boolean }
 
 /**
- * The route being edited as GeoJSON: each leg with its status, then a marker
- * per waypoint, the first marked as the start. A closed loop's last waypoint
- * is the start again, so it gets no marker of its own. A leg across ±180°
- * runs on past it, so it's drawn the short way.
+ * The route being edited as GeoJSON: each leg with its status, then each
+ * stretch of a leg on ways tagged foot=no, then a marker per waypoint, the
+ * first marked as the start. A closed loop's last waypoint is the start
+ * again, so it gets no marker of its own. A leg across ±180° runs on past
+ * it, so it's drawn the short way.
  */
 export function editorFeatures(
   waypoints: LngLat[],
   legs: RouteLeg[],
-): GeoJSON.FeatureCollection<GeoJSON.LineString | GeoJSON.Point, LegProperties | WaypointProperties> {
-  const lines = legs.map((leg) => ({
+): GeoJSON.FeatureCollection<
+  GeoJSON.LineString | GeoJSON.Point,
+  LegProperties | FootNoProperties | WaypointProperties
+> {
+  const unwrapped = legs.map((leg) => unwrapLongitudes(leg.coordinates))
+  const lines = legs.map((leg, i) => ({
     type: 'Feature' as const,
     properties: { status: leg.status },
-    geometry: { type: 'LineString' as const, coordinates: unwrapLongitudes(leg.coordinates) },
+    geometry: { type: 'LineString' as const, coordinates: unwrapped[i] },
   }))
+  const footNo = legs.flatMap((leg, i) =>
+    leg.footNo.map(([first, last]) => ({
+      type: 'Feature' as const,
+      properties: { footNo: true as const },
+      geometry: { type: 'LineString' as const, coordinates: unwrapped[i].slice(first, last + 1) },
+    })),
+  )
   const markers = (isLoopClosed(waypoints) ? waypoints.slice(0, -1) : waypoints).map((point, i) => ({
     type: 'Feature' as const,
     properties: { start: i === 0 },
     geometry: { type: 'Point' as const, coordinates: point },
   }))
-  return { type: 'FeatureCollection', features: [...lines, ...markers] }
+  return { type: 'FeatureCollection', features: [...lines, ...footNo, ...markers] }
 }

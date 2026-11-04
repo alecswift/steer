@@ -35,7 +35,7 @@ defmodule Steer.Routing.BRouterTest do
 
         assert %{
                  "lonlats" => "-121.4133,47.42769|-121.45167,47.45762",
-                 "profile" => "hiking-mountain",
+                 "profile" => "steer-hiking",
                  "profile:path_preference" => "10",
                  "format" => "geojson"
                } = conn.query_params
@@ -47,11 +47,14 @@ defmodule Steer.Routing.BRouterTest do
 
       assert BRouter.snap(@from, @to) ==
                {:ok,
-                [
-                  [-121.41332, 47.427678, 938.5],
-                  [-121.4135, 47.4279, 941.25],
-                  [-121.451549, 47.457521, 1213.5]
-                ]}
+                %{
+                  line: [
+                    [-121.41332, 47.427678, 938.5],
+                    [-121.4135, 47.4279, 941.25],
+                    [-121.451549, 47.457521, 1213.5]
+                  ],
+                  foot_no: []
+                }}
     end
 
     test "keeps vertices without elevation as [lon, lat]" do
@@ -64,7 +67,81 @@ defmodule Steer.Routing.BRouterTest do
       stub(&Plug.Conn.send_resp(&1, 200, Jason.encode!(track)))
 
       assert BRouter.snap(@from, @to) ==
-               {:ok, [[-121.41332, 47.427678], [-121.451549, 47.457521]]}
+               {:ok, %{line: [[-121.41332, 47.427678], [-121.451549, 47.457521]], foot_no: []}}
+    end
+
+    test "gives the stretches on ways tagged foot=no as vertex ranges, joining touching ones" do
+      # Each message row ends a stretch at one of the line's vertices, in
+      # millionths of a degree, with that stretch's tags. The first row is
+      # the start.
+      line = for i <- 0..6, do: [-121.4 + i / 1000, 47.4 + i / 1000, 900.0 + i]
+      ends = [{0, "highway=path"}, {2, "highway=path"}, {3, "highway=path foot=no bicycle=no"}]
+      ends = ends ++ [{4, "reversedirection=yes highway=path foot=no"}, {6, "highway=track"}]
+
+      messages = [
+        ["Longitude", "Latitude", "Elevation", "Distance", "WayTags"]
+        | for {i, tags} <- ends do
+            [lon, lat, _z] = Enum.at(line, i)
+
+            [
+              to_string(round(lon * 1_000_000)),
+              to_string(round(lat * 1_000_000)),
+              "900",
+              "1",
+              tags
+            ]
+          end
+      ]
+
+      track =
+        @track
+        |> put_in(["features", Access.at(0), "geometry", "coordinates"], line)
+        |> put_in(["features", Access.at(0), "properties", "messages"], messages)
+
+      stub(&Plug.Conn.send_resp(&1, 200, Jason.encode!(track)))
+
+      assert BRouter.snap(@from, @to) == {:ok, %{line: line, foot_no: [[2, 4]]}}
+    end
+
+    test "a leg that starts on a foot=no way is marked from its first vertex" do
+      line = [[-121.4, 47.4], [-121.401, 47.401], [-121.402, 47.402]]
+
+      messages = [
+        ["Longitude", "Latitude", "WayTags"],
+        ["-121400000", "47400000", "highway=path foot=no"],
+        ["-121401000", "47401000", "highway=path foot=no"],
+        ["-121402000", "47402000", "highway=path foot=yes"]
+      ]
+
+      track =
+        @track
+        |> put_in(["features", Access.at(0), "geometry", "coordinates"], line)
+        |> put_in(["features", Access.at(0), "properties", "messages"], messages)
+
+      stub(&Plug.Conn.send_resp(&1, 200, Jason.encode!(track)))
+
+      assert BRouter.snap(@from, @to) == {:ok, %{line: line, foot_no: [[0, 1]]}}
+    end
+
+    test "messages it can't read mark nothing, and never lose the leg" do
+      line = [[-121.4, 47.4], [-121.401, 47.401]]
+
+      for messages <- [
+            nil,
+            [],
+            [["Longitude", "Latitude"]],
+            [["Longitude", "Latitude", "WayTags"], ["x", "47401000", "foot=no"]],
+            [["Longitude", "Latitude", "WayTags"], ["-121999000", "47999000", "foot=no"]]
+          ] do
+        track =
+          @track
+          |> put_in(["features", Access.at(0), "geometry", "coordinates"], line)
+          |> put_in(["features", Access.at(0), "properties", "messages"], messages)
+
+        stub(&Plug.Conn.send_resp(&1, 200, Jason.encode!(track)))
+
+        assert BRouter.snap(@from, @to) == {:ok, %{line: line, foot_no: []}}
+      end
     end
 
     test "a point with no way near it is no route" do

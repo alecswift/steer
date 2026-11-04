@@ -8,6 +8,9 @@
 export const mapColors = {
   route: '#e6532c',
   routeHalo: '#ffffff',
+  // Amber, apart from the route's red-orange: a stretch on ways tagged
+  // foot=no, mapped as closed to hikers.
+  closedTrail: '#ff9a1f',
   trail: '#7b1fa2',
   contourLine: 'rgba(120, 80, 40, 0.6)',
   contourLabel: '#5c3d1f',
